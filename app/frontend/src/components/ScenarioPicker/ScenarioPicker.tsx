@@ -9,9 +9,10 @@ interface Scenario {
 
 interface Props {
   currentName: string;
+  onLoad?: () => void;
 }
 
-export default function ScenarioPicker({ currentName }: Props) {
+export default function ScenarioPicker({ currentName, onLoad }: Props) {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [loading, setLoading] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -43,6 +44,7 @@ export default function ScenarioPicker({ currentName }: Props) {
         body: JSON.stringify({ id }),
       });
       setOpen(false);
+      onLoad?.();
     } catch (e) {
       console.error('Failed to load scenario', e);
     }

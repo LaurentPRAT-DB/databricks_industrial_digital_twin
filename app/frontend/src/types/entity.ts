@@ -68,3 +68,23 @@ export interface SimulationState {
   state_descriptions: Record<string, StateDescription>;
   sim_time: string;
 }
+
+export interface SimFrame {
+  sim_time: string;
+  elapsed_s: number;
+  entities: Entity[];
+  resources: Resource[];
+  metrics: Metrics;
+}
+
+export type PlaybackSpeed = 1 | 2 | 5 | 10 | 30 | 60;
+
+export interface SimulationFrameData {
+  config: SimConfig;
+  paths: PathSegment[];
+  locations: LocationMeta[];
+  state_descriptions: Record<string, StateDescription>;
+  frames: SimFrame[];
+  frame_count: number;
+  snapshot_interval_s: number;
+}

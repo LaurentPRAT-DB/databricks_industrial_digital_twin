@@ -1,11 +1,12 @@
 """FastAPI application for Industrial Digital Twin."""
 
-import asyncio
 import logging
 import os
-import threading
+import time as wall_time
 from contextlib import asynccontextmanager
+from datetime import timedelta
 from pathlib import Path
+from typing import Any
 
 import yaml
 from fastapi import FastAPI
@@ -14,7 +15,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
-from app.backend.api.websocket import websocket_router, broadcaster
 from src.engine.loader import load_config
 from src.engine.engine import SimulationEngine
 
@@ -23,19 +23,52 @@ logger = logging.getLogger(__name__)
 
 CONFIGS_DIR = Path(os.getenv("SIM_CONFIGS_DIR", "configs"))
 DEFAULT_CONFIG = os.getenv("SIM_CONFIG", "assembly_line_3station")
+SNAPSHOT_INTERVAL_S = int(os.getenv("SIM_SNAPSHOT_INTERVAL", "5"))
 
-_engine: SimulationEngine | None = None
-_engine_thread: threading.Thread | None = None
-_engine_stop = threading.Event()
 _active_scenario_id: str = ""
+_static_config: dict[str, Any] = {}
+_simulation_frames: list[dict[str, Any]] = []
 
 
-def _run_engine_loop(engine: SimulationEngine, dt: float, stop_event: threading.Event) -> None:
-    import time
-    speed_factor = float(os.getenv("SIM_SPEED", "60"))
-    real_interval = dt / speed_factor
+def _precompute_simulation(scenario_id: str) -> None:
+    global _active_scenario_id, _static_config, _simulation_frames
 
-    while engine.sim_time < engine.end_time and not stop_event.is_set():
+    config_path = CONFIGS_DIR / f"{scenario_id}.yaml"
+    logger.info("Loading config: %s", config_path)
+    config = load_config(str(config_path))
+    engine = SimulationEngine(config)
+    _active_scenario_id = scenario_id
+
+    dt = config.time_step_seconds
+    snapshot_every = max(1, int(SNAPSHOT_INTERVAL_S / dt))
+    tick = 0
+
+    logger.info("Pre-computing simulation: %s (%sh at dt=%ss, snapshot every %ss)...",
+                config.name, config.duration_hours, dt, SNAPSHOT_INTERVAL_S)
+    t0 = wall_time.time()
+
+    frames: list[dict[str, Any]] = []
+
+    # Record initial frame
+    state = engine.get_current_state()
+    frames.append({
+        "sim_time": state["sim_time"],
+        "elapsed_s": engine.elapsed_s,
+        "entities": state["entities"],
+        "resources": state["resources"],
+        "metrics": state["metrics"],
+    })
+
+    # Store static config from initial state
+    _static_config = {
+        "config": state["config"],
+        "paths": state["paths"],
+        "locations": state["locations"],
+        "state_descriptions": state["state_descriptions"],
+    }
+
+    while engine.sim_time < engine.end_time:
+        # Spawn
         new_entities = engine.scheduler.spawn_due(engine.elapsed_s)
         for entity in new_entities:
             first_target = engine._location_sequence[0] if engine._location_sequence else None
@@ -52,6 +85,7 @@ def _run_engine_loop(engine: SimulationEngine, dt: float, stop_event: threading.
                 entity.current_location = spawn_loc
             engine.entities[entity.id] = entity
 
+        # Update
         to_remove: list[str] = []
         for entity in list(engine.entities.values()):
             if entity.destroyed:
@@ -63,45 +97,31 @@ def _run_engine_loop(engine: SimulationEngine, dt: float, stop_event: threading.
         for eid in to_remove:
             del engine.entities[eid]
 
-        from datetime import timedelta
         engine.sim_time += timedelta(seconds=dt)
         engine.elapsed_s += dt
+        tick += 1
 
-        time.sleep(real_interval)
+        if tick % snapshot_every == 0:
+            state = engine.get_current_state()
+            frames.append({
+                "sim_time": state["sim_time"],
+                "elapsed_s": engine.elapsed_s,
+                "entities": state["entities"],
+                "resources": state["resources"],
+                "metrics": state["metrics"],
+            })
 
-
-def _start_engine(scenario_id: str) -> None:
-    global _engine, _engine_thread, _engine_stop, _active_scenario_id
-
-    # Stop existing engine
-    if _engine_thread and _engine_thread.is_alive():
-        _engine_stop.set()
-        _engine_thread.join(timeout=3)
-
-    _engine_stop = threading.Event()
-
-    config_path = CONFIGS_DIR / f"{scenario_id}.yaml"
-    logger.info("Loading config: %s", config_path)
-    config = load_config(str(config_path))
-    _engine = SimulationEngine(config)
-    _active_scenario_id = scenario_id
-    broadcaster.set_engine(_engine)
-
-    _engine_thread = threading.Thread(
-        target=_run_engine_loop,
-        args=(_engine, config.time_step_seconds, _engine_stop),
-        daemon=True,
-    )
-    _engine_thread.start()
-    logger.info("Simulation started: %s", config.name)
+    elapsed = wall_time.time() - t0
+    _simulation_frames = frames
+    logger.info("Pre-computed %d frames in %.1fs (%.0fx real-time)",
+                len(frames), elapsed, config.duration_hours * 3600 / max(elapsed, 0.001))
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    _start_engine(DEFAULT_CONFIG)
+    _precompute_simulation(DEFAULT_CONFIG)
     yield
-    logger.info("Shutting down simulation")
-    _engine_stop.set()
+    logger.info("Shutting down")
 
 
 app = FastAPI(
@@ -116,8 +136,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.include_router(websocket_router)
 
 
 @app.get("/api/scenarios")
@@ -148,63 +166,36 @@ async def load_scenario(req: LoadScenarioRequest):
     config_path = CONFIGS_DIR / f"{req.id}.yaml"
     if not config_path.exists():
         return JSONResponse(status_code=404, content={"error": f"Scenario '{req.id}' not found"})
-
-    _start_engine(req.id)
-
-    # Broadcast initial state to all connected clients
-    if _engine and broadcaster.connection_count > 0:
-        state = _engine.get_current_state()
-        await broadcaster.broadcast({"type": "initial", "data": state})
-
-    return {"status": "loaded", "id": req.id, "name": _engine.config.name if _engine else ""}
-
-
-@app.get("/api/config")
-async def get_config():
-    if _engine is None:
-        return {"name": "", "description": "", "facility_name": ""}
+    _precompute_simulation(req.id)
     return {
-        "name": _engine.config.name,
-        "description": _engine.config.description,
-        "facility_name": _engine.config.facility.name,
+        "status": "loaded",
+        "id": req.id,
+        "name": _static_config.get("config", {}).get("name", ""),
+        "frame_count": len(_simulation_frames),
+    }
+
+
+@app.get("/api/simulation/frames")
+async def get_simulation_frames():
+    return {
+        **_static_config,
+        "frames": _simulation_frames,
+        "frame_count": len(_simulation_frames),
+        "snapshot_interval_s": SNAPSHOT_INTERVAL_S,
     }
 
 
 @app.get("/api/status")
 async def get_status():
-    if _engine is None:
+    if not _simulation_frames:
         return {"status": "not_started"}
+    last = _simulation_frames[-1]
     return {
-        "status": "running",
-        "sim_time": _engine.sim_time.isoformat(),
-        "elapsed_hours": round(_engine.elapsed_s / 3600, 2),
-        "config_name": _engine.config.name,
+        "status": "ready",
+        "frame_count": len(_simulation_frames),
+        "scenario": _active_scenario_id,
+        "duration_s": last["elapsed_s"],
     }
-
-
-@app.get("/api/entities")
-async def get_entities():
-    if _engine is None:
-        return {"entities": []}
-    return {
-        "entities": [e.to_dict() for e in _engine.entities.values() if not e.destroyed]
-    }
-
-
-@app.get("/api/resources")
-async def get_resources():
-    if _engine is None:
-        return {"resources": []}
-    return {
-        "resources": [r.to_dict() for r in _engine.resource_mgr.resources.values()]
-    }
-
-
-@app.get("/api/metrics")
-async def get_metrics():
-    if _engine is None:
-        return {}
-    return _engine.get_metrics()
 
 
 # Serve frontend static files

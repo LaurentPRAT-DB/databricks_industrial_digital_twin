@@ -56,7 +56,25 @@ Top-down schematic view with color-coded machines, conveyor paths, and animated 
 
 Interactive 3D perspective with orbit camera controls (drag to rotate, scroll to zoom). Machines render as colored boxes with emissive glow when busy. Entities animate as spheres moving along conveyor paths. Labels float above each station.
 
-Both views share the same WebSocket data feed and stay perfectly in sync when switching.
+Both views share the same data feed and stay perfectly in sync when switching.
+
+### Playback Bar (Time Travel)
+
+The simulation is **pre-computed on startup** — the entire run (default 8 hours of simulated time) is calculated server-side in seconds and delivered as a frame array to the frontend. This enables full time-travel capabilities:
+
+| Control | Description |
+|---------|-------------|
+| **Play / Pause** | Start or stop automatic frame advancement |
+| **Progress Bar** | Click anywhere to seek to any point in time — instant random access |
+| **Speed Selector** | 1x, 2x, 5x, 10x, 30x, 60x playback speeds (1x = 1 sim-minute per real-second) |
+| **Time Display** | Current simulation clock (HH:MM:SS) and elapsed hours |
+| **Frame Counter** | Shows current frame / total frames for precise navigation |
+
+The playback architecture:
+- Backend pre-computes all frames at startup (`GET /api/simulation/frames`) with configurable snapshot interval (default: 5 sim-seconds between frames)
+- Frontend loads the full frame set once, then plays through them locally — no network traffic during playback
+- Seeking is instant (array index lookup) — scrub through an 8-hour simulation in milliseconds
+- Switching scenarios triggers a full re-computation and reloads the frame set
 
 ---
 
@@ -474,25 +492,32 @@ The scenario appears automatically in the dashboard's scenario picker.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/api/scenarios` | List available scenario configs with active flag |
-| `POST` | `/api/scenarios/load` | Switch active scenario `{"id": "config_name"}` |
+| `POST` | `/api/scenarios/load` | Switch active scenario, re-computes all frames `{"id": "config_name"}` |
+| `GET` | `/api/simulation/frames` | Full pre-computed frame array (config, paths, locations, state descriptions, all frames) |
 | `GET` | `/api/config` | Current simulation name, description, facility |
-| `GET` | `/api/status` | Simulation runtime status and elapsed time |
-| `GET` | `/api/entities` | Snapshot of all active entities |
-| `GET` | `/api/resources` | Current machine/buffer states |
-| `GET` | `/api/metrics` | Real-time KPI metrics |
-| `WS` | `/ws/entities` | Real-time stream: initial state + delta updates every ~1s |
+| `GET` | `/api/status` | Simulation runtime status, frame count, elapsed time |
+| `GET` | `/api/entities` | Snapshot of all active entities (last frame) |
+| `GET` | `/api/resources` | Current machine/buffer states (last frame) |
+| `GET` | `/api/metrics` | Real-time KPI metrics (last frame) |
 
-### WebSocket Protocol
+### Frames Endpoint (Playback)
 
-**Initial message** (on connect):
+`GET /api/simulation/frames` returns the full simulation as a seekable frame array:
+
 ```json
-{"type": "initial", "data": {"entities": [...], "resources": [...], "metrics": {...}, "config": {...}, "paths": [...], "locations": [...], "state_descriptions": {...}}}
-```
-
-**Delta updates** (every tick):
-```json
-{"type": "entity_delta", "data": {"deltas": [...], "removed": [...], "metrics": {...}, "resources": [...]}}
-```
+{
+  "config": {"name": "...", "description": "...", "facility_name": "..."},
+  "paths": [{"from": {"x": 5, "y": 25}, "to": {"x": 18, "y": 25}}, ...],
+  "locations": [{"id": "cnc_mill_1", "type": "machine", "label": "CNC Mill 1", ...}, ...],
+  "state_descriptions": {"cnc_milling": {"description": "...", "type": "stationary", "duration": {"mean": 120, "std": 10}}, ...},
+  "frames": [
+    {"sim_time": "2025-01-01T06:00:00", "elapsed_s": 0, "entities": [...], "resources": [...], "metrics": {...}},
+    {"sim_time": "2025-01-01T06:00:05", "elapsed_s": 5, ...},
+    ...
+  ],
+  "frame_count": 5760,
+  "snapshot_interval_s": 5
+}
 
 ---
 
