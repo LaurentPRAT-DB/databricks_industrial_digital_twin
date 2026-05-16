@@ -1,11 +1,36 @@
+# Python
 __pycache__/
 *.pyc
-.pytest_cache/
+*.pyo
 *.egg-info/
 dist/
 build/
 .venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+*.egg
+
+# Node / Frontend
 node_modules/
 app/frontend/dist/
+
+# Environment
 .env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
 *.log
+
+# Data / output
+*.parquet
+*.csv
