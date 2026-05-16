@@ -1,0 +1,282 @@
+simulation:
+  name: "3-Station Assembly Line"
+  duration_hours: 8
+  time_step_seconds: 1
+  seed: 42
+
+facility:
+  name: "Plant Alpha - Line 1"
+  coordinate_system: cartesian_2d
+  bounds: { width: 100, height: 50, unit: meters }
+
+  locations:
+    - id: dock_in
+      type: spawn_point
+      position: { x: 5, y: 25 }
+
+    - id: buf_1
+      type: buffer
+      position: { x: 20, y: 25 }
+      capacity: 10
+
+    - id: cnc_1
+      type: machine
+      position: { x: 35, y: 15 }
+      capacity: 1
+      properties: { cycle_time_mean: 120, mtbf_hours: 200 }
+
+    - id: cnc_2
+      type: machine
+      position: { x: 35, y: 35 }
+      capacity: 1
+      properties: { cycle_time_mean: 120, mtbf_hours: 200 }
+
+    - id: buf_2
+      type: buffer
+      position: { x: 50, y: 25 }
+      capacity: 8
+
+    - id: assembly_1
+      type: machine
+      position: { x: 65, y: 25 }
+      capacity: 1
+      properties: { cycle_time_mean: 180, mtbf_hours: 500 }
+
+    - id: buf_3
+      type: buffer
+      position: { x: 80, y: 25 }
+      capacity: 5
+
+    - id: qc_1
+      type: machine
+      position: { x: 90, y: 25 }
+      capacity: 1
+      properties: { cycle_time_mean: 60, mtbf_hours: 1000 }
+
+    - id: dock_out
+      type: exit_point
+      position: { x: 95, y: 25 }
+
+  paths:
+    - from: dock_in
+      to: buf_1
+      distance: 15
+    - from: buf_1
+      to: cnc_1
+      distance: 18
+    - from: buf_1
+      to: cnc_2
+      distance: 18
+    - from: cnc_1
+      to: buf_2
+      distance: 18
+    - from: cnc_2
+      to: buf_2
+      distance: 18
+    - from: buf_2
+      to: assembly_1
+      distance: 15
+    - from: assembly_1
+      to: buf_3
+      distance: 15
+    - from: buf_3
+      to: qc_1
+      distance: 10
+    - from: qc_1
+      to: dock_out
+      distance: 5
+
+state_graphs:
+  product_flow:
+    states:
+      waiting:
+        type: queued
+        description: "Waiting in buffer for next station"
+        queue_discipline: FIFO
+
+      in_transit:
+        type: moving
+        description: "Moving between stations"
+        speed:
+          distribution: constant
+          params: { value: 1.5 }
+
+      machining:
+        type: stationary
+        description: "Being machined at CNC station"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 120, std: 15 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: machining_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: machining_completed
+
+      assembling:
+        type: stationary
+        description: "Being assembled"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 180, std: 20 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: assembly_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: assembly_completed
+
+      inspecting:
+        type: stationary
+        description: "Quality inspection"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 60, std: 10 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: inspection_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: inspection_completed
+
+      done:
+        type: terminal
+        description: "Product completed"
+        on_enter:
+          - action: emit_event
+            event_type: product_completed
+          - action: destroy_entity
+
+    transitions:
+      - from: waiting
+        to: in_transit
+        condition:
+          type: resource_available
+          resource_type: machine
+        priority: 1
+
+      - from: in_transit
+        to: waiting
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: resource_busy
+              resource_type: machine
+        priority: 1
+
+      - from: in_transit
+        to: machining
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "<"
+              value: 2
+        priority: 2
+
+      - from: in_transit
+        to: assembling
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 2
+        priority: 2
+
+      - from: in_transit
+        to: inspecting
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 3
+        priority: 2
+
+      - from: in_transit
+        to: done
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: ">"
+              value: 3
+        priority: 2
+
+      - from: machining
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: assembling
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: inspecting
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+entity_types:
+  widget:
+    state_graph: product_flow
+    initial_state: waiting
+    spawn_rule: schedule
+    properties:
+      product_type:
+        type: categorical
+        values: [standard, premium]
+        weights: [0.7, 0.3]
+      station_index:
+        type: integer
+        initial: 0
+
+schedule:
+  type: poisson
+  rate_per_hour: 20
+  shifts:
+    - name: morning
+      start: "06:00"
+      end: "14:00"
+      rate_multiplier: 1.0
+    - name: afternoon
+      start: "14:00"
+      end: "22:00"
+      rate_multiplier: 0.9
+    - name: night
+      start: "22:00"
+      end: "06:00"
+      rate_multiplier: 0.5
