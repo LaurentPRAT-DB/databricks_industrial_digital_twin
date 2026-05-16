@@ -135,6 +135,16 @@ Each scenario defines its own spatial layout, process durations, failure rates (
 
 The What-If system allows interactive exploration of equipment deviations — model aging machines, quality issues, or erratic behavior and instantly see the impact on throughput, utilization, and queue depths.
 
+### What-If Editor
+
+![What-If Editor](docs/screenshots/whatif-editor.png)
+
+The editor panel opens on the right side of the dashboard. Each machine gets its own card with deviation sliders and quick-apply presets.
+
+![What-If Sliders](docs/screenshots/whatif-sliders.png)
+
+Per-machine deviation sliders with preset buttons (Nominal, Aging, Quality Issue, Erratic). Modified parameters highlight in amber.
+
 ### How It Works
 
 1. **Open the What-If Editor** via the header button
