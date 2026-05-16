@@ -29,6 +29,12 @@ facility:
       position: { x: 46, y: 12 }
       capacity: 1
       properties: { cycle_time_mean: 90, mtbf_hours: 300 }
+      deviations:
+        cycle_time_factor: 1.0
+        failure_probability: 0.0
+        failure_duration_mean: 300
+        degradation_rate: 0.0
+        quality_defect_rate: 0.0
 
     - id: stacker_2
       type: machine
@@ -36,6 +42,12 @@ facility:
       position: { x: 64, y: 12 }
       capacity: 1
       properties: { cycle_time_mean: 90, mtbf_hours: 300 }
+      deviations:
+        cycle_time_factor: 1.0
+        failure_probability: 0.0
+        failure_duration_mean: 300
+        degradation_rate: 0.0
+        quality_defect_rate: 0.0
 
     - id: stacked_module_queue
       type: buffer
@@ -49,6 +61,12 @@ facility:
       position: { x: 64, y: 38 }
       capacity: 1
       properties: { cycle_time_mean: 150, mtbf_hours: 400 }
+      deviations:
+        cycle_time_factor: 1.0
+        failure_probability: 0.0
+        failure_duration_mean: 300
+        degradation_rate: 0.0
+        quality_defect_rate: 0.0
 
     - id: welded_module_queue
       type: buffer
@@ -62,6 +80,12 @@ facility:
       position: { x: 28, y: 38 }
       capacity: 1
       properties: { cycle_time_mean: 45, mtbf_hours: 800 }
+      deviations:
+        cycle_time_factor: 1.0
+        failure_probability: 0.0
+        failure_duration_mean: 300
+        degradation_rate: 0.0
+        quality_defect_rate: 0.0
 
     - id: pack_output
       type: exit_point

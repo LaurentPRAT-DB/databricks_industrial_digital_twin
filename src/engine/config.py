@@ -50,6 +50,16 @@ class StateGraphConfig(BaseModel):
     transitions: list[TransitionConfig]
 
 
+class DeviationConfig(BaseModel):
+    cycle_time_factor: float = 1.0
+    cycle_time_variability: float = 1.0
+    failure_probability: float = 0.0
+    failure_duration_mean: float = 300.0
+    failure_duration_std: float = 60.0
+    degradation_rate: float = 0.0
+    quality_defect_rate: float = 0.0
+
+
 class LocationConfig(BaseModel):
     id: str
     type: str
@@ -58,6 +68,7 @@ class LocationConfig(BaseModel):
     label: str = ""
     properties: dict[str, Any] = Field(default_factory=dict)
     model_3d: Optional[str] = None
+    deviations: Optional[DeviationConfig] = None
 
 
 class PathConfig(BaseModel):

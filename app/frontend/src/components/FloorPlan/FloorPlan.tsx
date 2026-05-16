@@ -83,6 +83,7 @@ export default function FloorPlan({ entities, resources, paths, locations }: Pro
         const isBusy = r.status === 'busy';
         const label = labelMap.get(r.id) || r.id.replace(/_/g, ' ');
         const isAboveCenter = r.y < 25;
+        const showLabel = r.type !== 'buffer';
 
         return (
           <g key={r.id}>
@@ -110,18 +111,20 @@ export default function FloorPlan({ entities, resources, paths, locations }: Pro
               stroke={color}
               strokeWidth={isBusy ? 2 : 1.2}
             />
-            {/* Label — positioned above or below depending on vertical position */}
-            <text
-              x={cx}
-              y={isAboveCenter ? cy - size - 8 : cy + size + 14}
-              textAnchor="middle"
-              fontSize="10"
-              fontWeight="600"
-              fill="#f1f5f9"
-              letterSpacing="0.3"
-            >
-              {label}
-            </text>
+            {/* Label — only for machines, spawn, exit (skip buffers to avoid overlap) */}
+            {showLabel && (
+              <text
+                x={cx}
+                y={isAboveCenter ? cy - size - 6 : cy + size + 12}
+                textAnchor="middle"
+                fontSize="8"
+                fontWeight="500"
+                fill="#e2e8f0"
+                letterSpacing="0.2"
+              >
+                {label}
+              </text>
+            )}
             {/* Machine icon */}
             {r.type === 'machine' && (
               <text
@@ -135,8 +138,8 @@ export default function FloorPlan({ entities, resources, paths, locations }: Pro
                 {isBusy ? '⚙' : '○'}
               </text>
             )}
-            {/* Buffer count */}
-            {r.type === 'buffer' && r.queue_depth > 0 && (
+            {/* Buffer: show chevron arrow or queue count */}
+            {r.type === 'buffer' && (
               <text
                 x={cx}
                 y={cy + 4}
@@ -145,7 +148,7 @@ export default function FloorPlan({ entities, resources, paths, locations }: Pro
                 fill="white"
                 fontWeight="bold"
               >
-                {r.queue_depth}
+                {r.queue_depth > 0 ? r.queue_depth : '›'}
               </text>
             )}
           </g>

@@ -30,9 +30,10 @@ class EntityState:
     state_duration: float = 0.0
     speed: float = 1.5
     destroyed: bool = False
+    breakdown_remaining: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        d = {
             "id": self.id,
             "entity_type": self.entity_type,
             "state": self.state,
@@ -42,6 +43,9 @@ class EntityState:
             "current_location": self.current_location,
             "properties": self.properties,
         }
+        if self.breakdown_remaining > 0:
+            d["breakdown_remaining"] = round(self.breakdown_remaining, 1)
+        return d
 
 
 @dataclass

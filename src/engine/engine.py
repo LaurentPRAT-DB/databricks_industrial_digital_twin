@@ -7,7 +7,7 @@ import time as wall_time
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from src.engine.config import SimulationConfig, StateConfig
+from src.engine.config import SimulationConfig, StateConfig, DeviationConfig
 from src.engine.models import EntityState, ResourceState, Position, SimulationContext
 from src.engine.state_graph import StateGraphExecutor
 from src.engine.resource_manager import ResourceManager
@@ -63,6 +63,9 @@ class SimulationEngine:
             spawn_position=spawn_pos,
             seed=config.seed,
         )
+
+        # Deviation overrides (location_id -> DeviationConfig)
+        self._deviation_overrides: dict[str, DeviationConfig] = {}
 
         # Active entities
         self.entities: dict[str, EntityState] = {}
@@ -145,25 +148,46 @@ class SimulationEngine:
         ]
         return exits[0] if exits else None
 
-    def _compute_state_duration(self, state_config: StateConfig) -> float:
-        """Compute duration for a stationary state based on config."""
+    def set_deviation_overrides(self, overrides: dict[str, DeviationConfig]) -> None:
+        self._deviation_overrides = overrides
+
+    def _get_deviation(self, location_id: str) -> DeviationConfig | None:
+        if location_id in self._deviation_overrides:
+            return self._deviation_overrides[location_id]
+        loc_cfg = next((l for l in self.config.facility.locations if l.id == location_id), None)
+        return loc_cfg.deviations if loc_cfg else None
+
+    def _compute_state_duration(self, state_config: StateConfig, location_id: str | None = None) -> float:
+        """Compute duration for a stationary state, applying any deviations."""
         if state_config.duration is None:
             return 0.0
         d = state_config.duration
         if d.distribution == "constant":
-            return d.params.get("value", 0.0)
-        if d.distribution == "normal":
+            base = d.params.get("value", 0.0)
+        elif d.distribution == "normal":
             mean = d.params.get("mean", 60.0)
             std = d.params.get("std", 10.0)
-            return max(1.0, random.gauss(mean, std))
-        if d.distribution == "exponential":
+            dev = self._get_deviation(location_id) if location_id else None
+            if dev:
+                std *= dev.cycle_time_variability
+            base = random.gauss(mean, std)
+        elif d.distribution == "exponential":
             mean = d.params.get("mean", 60.0)
-            return max(1.0, random.expovariate(1.0 / mean))
-        if d.distribution == "uniform":
+            base = random.expovariate(1.0 / mean)
+        elif d.distribution == "uniform":
             lo = d.params.get("min", 0.0)
             hi = d.params.get("max", 60.0)
-            return random.uniform(lo, hi)
-        return d.params.get("value", 0.0)
+            base = random.uniform(lo, hi)
+        else:
+            base = d.params.get("value", 0.0)
+
+        if location_id:
+            dev = self._get_deviation(location_id)
+            if dev:
+                base *= dev.cycle_time_factor
+                base += dev.degradation_rate * (self.elapsed_s / 3600.0)
+
+        return max(1.0, base)
 
     def _get_entity_speed(self, entity: EntityState, state_config: StateConfig) -> float:
         if state_config.speed:
@@ -201,7 +225,7 @@ class SimulationEngine:
 
         # Set up new state
         if new_state_config.type == "stationary":
-            entity.state_duration = self._compute_state_duration(new_state_config)
+            entity.state_duration = self._compute_state_duration(new_state_config, entity.current_location)
         elif new_state_config.type == "moving":
             entity.speed = self._get_entity_speed(entity, new_state_config)
             # Compute route to next target
@@ -294,6 +318,18 @@ class SimulationEngine:
                 if r and r.type == "machine":
                     pass  # Will increment after processing
 
+        # Handle breakdown countdown — entity stuck at machine during repair
+        if entity.breakdown_remaining > 0:
+            entity.breakdown_remaining -= dt
+            if entity.breakdown_remaining <= 0:
+                entity.breakdown_remaining = 0.0
+                self.recorder.record_event(
+                    self.sim_time, "breakdown_resolved",
+                    description=f"{entity.id} at {entity.current_location}",
+                    details={"entity_id": entity.id, "location": entity.current_location},
+                )
+            return
+
         # Evaluate transitions
         ctx = SimulationContext(
             sim_time=self.sim_time,
@@ -306,6 +342,30 @@ class SimulationEngine:
         if transition:
             # On completing any stationary (processing) state, advance station_index
             if state_config and state_config.type == "stationary" and transition.to_state == "in_transit":
+                loc = entity.current_location
+                dev = self._get_deviation(loc) if loc else None
+
+                # Failure injection: machine breaks down after processing
+                if dev and dev.failure_probability > 0 and random.random() < dev.failure_probability:
+                    repair_time = max(10.0, random.gauss(dev.failure_duration_mean, dev.failure_duration_std))
+                    entity.breakdown_remaining = repair_time
+                    self.recorder.record_event(
+                        self.sim_time, "machine_breakdown",
+                        description=f"{entity.id} at {loc}",
+                        details={"entity_id": entity.id, "location": loc, "repair_time": round(repair_time, 1)},
+                    )
+                    return
+
+                # Quality defect: entity reworks at same station
+                if dev and dev.quality_defect_rate > 0 and random.random() < dev.quality_defect_rate:
+                    entity.state_duration = self._compute_state_duration(state_config, loc)
+                    self.recorder.record_event(
+                        self.sim_time, "quality_defect_rework",
+                        description=f"{entity.id} at {loc}",
+                        details={"entity_id": entity.id, "location": loc},
+                    )
+                    return
+
                 entity.properties["station_index"] = entity.properties.get("station_index", 0) + 1
 
             self._handle_transition(entity, transition)

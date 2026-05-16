@@ -6,12 +6,14 @@ import MachineStatus from './components/MachineStatus/MachineStatus';
 import ProductionBoard from './components/ProductionBoard/ProductionBoard';
 import EntityList from './components/EntityList/EntityList';
 import ScenarioPicker from './components/ScenarioPicker/ScenarioPicker';
+import ScenarioEditor from './components/ScenarioEditor/ScenarioEditor';
 import ProcessInfo from './components/ProcessInfo/ProcessInfo';
 import PlaybackBar from './components/PlaybackBar/PlaybackBar';
 
 function App() {
   const sim = useSimulationReplay();
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
+  const [showEditor, setShowEditor] = useState(false);
 
   useEffect(() => {
     if (sim.simConfig.name) document.title = sim.simConfig.name;
@@ -61,6 +63,16 @@ function App() {
               3D
             </button>
           </div>
+          <button
+            onClick={() => setShowEditor(!showEditor)}
+            className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+              showEditor
+                ? 'bg-amber-600 border-amber-500 text-white'
+                : 'bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600'
+            }`}
+          >
+            What-If
+          </button>
           <ScenarioPicker currentName={sim.simConfig.name} onLoad={sim.loadFrames} />
         </div>
       </header>
@@ -82,29 +94,36 @@ function App() {
             stateDescriptions={sim.stateDescriptions}
             metrics={sim.metrics}
           />
+          <PlaybackBar
+            isPlaying={sim.isPlaying}
+            speed={sim.speed}
+            currentFrameIndex={sim.currentFrameIndex}
+            totalFrames={sim.totalFrames}
+            progressPct={sim.progressPct}
+            currentSimTime={sim.currentSimTime}
+            elapsedHours={sim.elapsedHours}
+            onTogglePlay={sim.togglePlayPause}
+            onSeekPercent={sim.seekToPercent}
+            onChangeSpeed={sim.changeSpeed}
+          />
         </div>
 
         {/* Sidebar (right) */}
         <div className="w-80 p-4 space-y-4 overflow-y-auto border-l border-slate-700">
           <ProductionBoard metrics={sim.metrics} />
-          <MachineStatus resources={sim.resources} />
-          <EntityList entities={sim.entities} />
+          <MachineStatus resources={sim.resources} locations={sim.locations} />
+          <EntityList entities={sim.entities} locations={sim.locations} stateDescriptions={sim.stateDescriptions} />
         </div>
-      </div>
 
-      {/* Playback Bar */}
-      <PlaybackBar
-        isPlaying={sim.isPlaying}
-        speed={sim.speed}
-        currentFrameIndex={sim.currentFrameIndex}
-        totalFrames={sim.totalFrames}
-        progressPct={sim.progressPct}
-        currentSimTime={sim.currentSimTime}
-        elapsedHours={sim.elapsedHours}
-        onTogglePlay={sim.togglePlayPause}
-        onSeekPercent={sim.seekToPercent}
-        onChangeSpeed={sim.changeSpeed}
-      />
+        {/* What-If Editor (far right) */}
+        {showEditor && sim.scenarioId && (
+          <ScenarioEditor
+            scenarioId={sim.scenarioId}
+            onSimulate={sim.loadFrames}
+            onClose={() => setShowEditor(false)}
+          />
+        )}
+      </div>
     </div>
   );
 }

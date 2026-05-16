@@ -28,6 +28,14 @@ facility:
       position: { x: 33, y: 13 }
       capacity: 1
       properties: { cycle_time_mean: 120, mtbf_hours: 200 }
+      deviations:
+        cycle_time_factor: 1.0
+        cycle_time_variability: 1.0
+        failure_probability: 0.0
+        failure_duration_mean: 300
+        failure_duration_std: 60
+        degradation_rate: 0.0
+        quality_defect_rate: 0.0
 
     - id: cnc_mill_2
       type: machine
@@ -35,6 +43,14 @@ facility:
       position: { x: 33, y: 37 }
       capacity: 1
       properties: { cycle_time_mean: 120, mtbf_hours: 200 }
+      deviations:
+        cycle_time_factor: 1.0
+        cycle_time_variability: 1.0
+        failure_probability: 0.0
+        failure_duration_mean: 300
+        failure_duration_std: 60
+        degradation_rate: 0.0
+        quality_defect_rate: 0.0
 
     - id: milled_chassis_queue
       type: buffer
@@ -48,6 +64,14 @@ facility:
       position: { x: 62, y: 25 }
       capacity: 1
       properties: { cycle_time_mean: 180, mtbf_hours: 500 }
+      deviations:
+        cycle_time_factor: 1.0
+        cycle_time_variability: 1.0
+        failure_probability: 0.0
+        failure_duration_mean: 300
+        failure_duration_std: 60
+        degradation_rate: 0.0
+        quality_defect_rate: 0.0
 
     - id: assembled_chassis_queue
       type: buffer
@@ -61,6 +85,14 @@ facility:
       position: { x: 88, y: 25 }
       capacity: 1
       properties: { cycle_time_mean: 60, mtbf_hours: 1000 }
+      deviations:
+        cycle_time_factor: 1.0
+        cycle_time_variability: 1.0
+        failure_probability: 0.0
+        failure_duration_mean: 300
+        failure_duration_std: 60
+        degradation_rate: 0.0
+        quality_defect_rate: 0.0
 
     - id: finished_goods_out
       type: exit_point

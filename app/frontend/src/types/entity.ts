@@ -79,6 +79,24 @@ export interface SimFrame {
 
 export type PlaybackSpeed = 1 | 2 | 5 | 10 | 30 | 60;
 
+export interface DeviationParams {
+  cycle_time_factor: number;
+  cycle_time_variability: number;
+  failure_probability: number;
+  failure_duration_mean: number;
+  failure_duration_std: number;
+  degradation_rate: number;
+  quality_defect_rate: number;
+}
+
+export interface LocationParameter {
+  id: string;
+  label: string;
+  cycle_time_mean: number | null;
+  mtbf_hours: number | null;
+  deviations: DeviationParams;
+}
+
 export interface SimulationFrameData {
   config: SimConfig;
   paths: PathSegment[];
@@ -87,4 +105,6 @@ export interface SimulationFrameData {
   frames: SimFrame[];
   frame_count: number;
   snapshot_interval_s: number;
+  scenario_id: string;
+  whatif_name: string | null;
 }

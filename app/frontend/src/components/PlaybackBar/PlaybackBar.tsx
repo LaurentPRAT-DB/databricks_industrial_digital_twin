@@ -37,31 +37,31 @@ export default function PlaybackBar({
   };
 
   return (
-    <div className="bg-slate-800 border-t border-slate-700 px-4 py-2 flex items-center gap-3 shrink-0">
+    <div className="bg-slate-800 border-t border-slate-700 flex items-center h-9 px-4 gap-3 shrink-0">
       {/* Play/Pause */}
       <button
         onClick={onTogglePlay}
-        className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-500 transition-colors shrink-0"
+        className="w-6 h-6 flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-500 transition-colors shrink-0"
         title={isPlaying ? 'Pause' : 'Play'}
       >
         {isPlaying ? (
-          <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
             <rect x="6" y="4" width="4" height="16" />
             <rect x="14" y="4" width="4" height="16" />
           </svg>
         ) : (
-          <svg className="w-3.5 h-3.5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="w-2.5 h-2.5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
             <polygon points="5,3 19,12 5,21" />
           </svg>
         )}
       </button>
 
       {/* Time display */}
-      <div className="shrink-0 text-center min-w-[90px]">
-        <div className="text-sm font-mono font-bold text-white leading-none">
+      <div className="shrink-0 text-center min-w-[70px]">
+        <div className="text-[11px] font-mono font-bold text-white leading-none">
           {formatSimTime(currentSimTime)}
         </div>
-        <div className="text-[9px] text-slate-500 uppercase mt-0.5">
+        <div className="text-[8px] text-slate-500 uppercase mt-0.5">
           {elapsedHours}h elapsed
         </div>
       </div>
@@ -69,10 +69,10 @@ export default function PlaybackBar({
       {/* Progress bar */}
       <div
         ref={barRef}
-        className="flex-1 h-6 flex items-center cursor-pointer group"
+        className="flex-1 h-5 flex items-center cursor-pointer group"
         onClick={handleBarClick}
       >
-        <div className="w-full h-1.5 bg-slate-700 rounded-full relative overflow-hidden group-hover:h-2.5 transition-all">
+        <div className="w-full h-1 bg-slate-700 rounded-full relative overflow-hidden group-hover:h-2 transition-all">
           <div
             className="absolute left-0 top-0 h-full bg-blue-500 rounded-full transition-[width] duration-75"
             style={{ width: `${progressPct}%` }}
@@ -86,10 +86,10 @@ export default function PlaybackBar({
           <button
             key={s}
             onClick={() => onChangeSpeed(s)}
-            className={`px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors ${
+            className={`px-1.5 py-0.5 text-[9px] font-bold rounded transition-colors ${
               s === speed
                 ? 'bg-blue-600 text-white'
-                : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                : 'text-slate-500 hover:text-white hover:bg-slate-700'
             }`}
           >
             {s}x
@@ -98,7 +98,7 @@ export default function PlaybackBar({
       </div>
 
       {/* Frame counter */}
-      <div className="text-[10px] text-slate-500 shrink-0 min-w-[70px] text-right font-mono">
+      <div className="text-[9px] text-slate-500 shrink-0 min-w-[50px] text-right font-mono">
         {currentFrameIndex + 1} / {totalFrames}
       </div>
     </div>
