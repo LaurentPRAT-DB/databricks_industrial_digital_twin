@@ -1,91 +1,92 @@
 simulation:
-  name: "Smartphone Chassis Line"
-  description: "CNC Milling → Press-Fit Assembly → CMM Inspection"
+  name: "EV Battery Pack Assembly"
+  description: "Cell Stacking → Laser Welding → End-of-Line Testing"
   duration_hours: 8
   time_step_seconds: 1
-  seed: 42
+  seed: 99
 
 facility:
-  name: "CNC Machining Center — Chassis Line 1"
+  name: "Gigafactory — Module Line 2"
   coordinate_system: cartesian_2d
   bounds: { width: 100, height: 50, unit: meters }
 
+  # U-shaped layout: top row left→right, then down, then bottom row right→left
   locations:
-    - id: raw_billet_intake
+    - id: cell_delivery
       type: spawn_point
-      position: { x: 5, y: 25 }
+      position: { x: 10, y: 12 }
 
-    - id: billet_queue
+    - id: cell_buffer
       type: buffer
-      position: { x: 20, y: 25 }
-      capacity: 10
+      position: { x: 28, y: 12 }
+      capacity: 12
 
-    - id: cnc_mill_1
+    - id: stacker_1
       type: machine
-      position: { x: 35, y: 15 }
+      position: { x: 46, y: 12 }
       capacity: 1
-      properties: { cycle_time_mean: 120, mtbf_hours: 200 }
+      properties: { cycle_time_mean: 90, mtbf_hours: 300 }
 
-    - id: cnc_mill_2
+    - id: stacker_2
       type: machine
-      position: { x: 35, y: 35 }
+      position: { x: 64, y: 12 }
       capacity: 1
-      properties: { cycle_time_mean: 120, mtbf_hours: 200 }
+      properties: { cycle_time_mean: 90, mtbf_hours: 300 }
 
-    - id: milled_chassis_queue
-      type: buffer
-      position: { x: 50, y: 25 }
-      capacity: 8
-
-    - id: press_fit_station
-      type: machine
-      position: { x: 65, y: 25 }
-      capacity: 1
-      properties: { cycle_time_mean: 180, mtbf_hours: 500 }
-
-    - id: assembled_chassis_queue
+    - id: stacked_module_queue
       type: buffer
       position: { x: 80, y: 25 }
-      capacity: 5
+      capacity: 6
 
-    - id: cmm_inspector
+    - id: laser_welder
       type: machine
-      position: { x: 90, y: 25 }
+      position: { x: 64, y: 38 }
       capacity: 1
-      properties: { cycle_time_mean: 60, mtbf_hours: 1000 }
+      properties: { cycle_time_mean: 150, mtbf_hours: 400 }
 
-    - id: finished_goods_out
+    - id: welded_module_queue
+      type: buffer
+      position: { x: 46, y: 38 }
+      capacity: 4
+
+    - id: eol_tester
+      type: machine
+      position: { x: 28, y: 38 }
+      capacity: 1
+      properties: { cycle_time_mean: 45, mtbf_hours: 800 }
+
+    - id: pack_output
       type: exit_point
-      position: { x: 95, y: 25 }
+      position: { x: 10, y: 38 }
 
   paths:
-    - from: raw_billet_intake
-      to: billet_queue
-      distance: 15
-    - from: billet_queue
-      to: cnc_mill_1
+    - from: cell_delivery
+      to: cell_buffer
       distance: 18
-    - from: billet_queue
-      to: cnc_mill_2
+    - from: cell_buffer
+      to: stacker_1
       distance: 18
-    - from: cnc_mill_1
-      to: milled_chassis_queue
+    - from: cell_buffer
+      to: stacker_2
+      distance: 36
+    - from: stacker_1
+      to: stacked_module_queue
+      distance: 22
+    - from: stacker_2
+      to: stacked_module_queue
+      distance: 20
+    - from: stacked_module_queue
+      to: laser_welder
+      distance: 20
+    - from: laser_welder
+      to: welded_module_queue
       distance: 18
-    - from: cnc_mill_2
-      to: milled_chassis_queue
+    - from: welded_module_queue
+      to: eol_tester
       distance: 18
-    - from: milled_chassis_queue
-      to: press_fit_station
-      distance: 15
-    - from: press_fit_station
-      to: assembled_chassis_queue
-      distance: 15
-    - from: assembled_chassis_queue
-      to: cmm_inspector
-      distance: 10
-    - from: cmm_inspector
-      to: finished_goods_out
-      distance: 5
+    - from: eol_tester
+      to: pack_output
+      distance: 18
 
 state_graphs:
   product_flow:
@@ -97,71 +98,71 @@ state_graphs:
 
       in_transit:
         type: moving
-        description: "Moving between stations on conveyor"
+        description: "Moving on AGV between stations"
         speed:
           distribution: constant
           params: { value: 1.5 }
 
-      cnc_milling:
+      cell_stacking:
         type: stationary
-        description: "CNC rough + finish milling of aluminum chassis from billet"
+        description: "Stacking prismatic cells into module frame with thermal pads"
         location_type: machine
         duration:
           distribution: normal
-          params: { mean: 120, std: 15 }
+          params: { mean: 90, std: 10 }
         on_enter:
           - action: acquire_resource
             resource_type: machine
           - action: emit_event
-            event_type: cnc_milling_started
+            event_type: cell_stacking_started
         on_exit:
           - action: release_resource
             resource_type: machine
           - action: emit_event
-            event_type: cnc_milling_completed
+            event_type: cell_stacking_completed
 
-      press_fitting:
+      laser_welding:
         type: stationary
-        description: "Press-fit antenna bands, button brackets, and SIM tray rails"
+        description: "Laser welding busbar connections between cells"
         location_type: machine
         duration:
           distribution: normal
-          params: { mean: 180, std: 20 }
+          params: { mean: 150, std: 18 }
         on_enter:
           - action: acquire_resource
             resource_type: machine
           - action: emit_event
-            event_type: press_fitting_started
+            event_type: laser_welding_started
         on_exit:
           - action: release_resource
             resource_type: machine
           - action: emit_event
-            event_type: press_fitting_completed
+            event_type: laser_welding_completed
 
-      cmm_inspection:
+      eol_testing:
         type: stationary
-        description: "CMM dimensional check, surface finish measurement, tolerance verification"
+        description: "End-of-line voltage, impedance, and leak test"
         location_type: machine
         duration:
           distribution: normal
-          params: { mean: 60, std: 10 }
+          params: { mean: 45, std: 8 }
         on_enter:
           - action: acquire_resource
             resource_type: machine
           - action: emit_event
-            event_type: cmm_inspection_started
+            event_type: eol_testing_started
         on_exit:
           - action: release_resource
             resource_type: machine
           - action: emit_event
-            event_type: cmm_inspection_completed
+            event_type: eol_testing_completed
 
       done:
         type: terminal
-        description: "Chassis completed — ready for anodizing"
+        description: "Module passed — ready for pack integration"
         on_enter:
           - action: emit_event
-            event_type: chassis_completed
+            event_type: module_completed
           - action: destroy_entity
 
     transitions:
@@ -183,7 +184,7 @@ state_graphs:
         priority: 1
 
       - from: in_transit
-        to: cnc_milling
+        to: cell_stacking
         condition:
           type: and
           conditions:
@@ -195,7 +196,7 @@ state_graphs:
         priority: 2
 
       - from: in_transit
-        to: press_fitting
+        to: laser_welding
         condition:
           type: and
           conditions:
@@ -207,7 +208,7 @@ state_graphs:
         priority: 2
 
       - from: in_transit
-        to: cmm_inspection
+        to: eol_testing
         condition:
           type: and
           conditions:
@@ -230,21 +231,21 @@ state_graphs:
               value: 3
         priority: 2
 
-      - from: cnc_milling
+      - from: cell_stacking
         to: in_transit
         condition:
           type: duration_elapsed
         priority: 1
         next_location: { type: next_in_sequence }
 
-      - from: press_fitting
+      - from: laser_welding
         to: in_transit
         condition:
           type: duration_elapsed
         priority: 1
         next_location: { type: next_in_sequence }
 
-      - from: cmm_inspection
+      - from: eol_testing
         to: in_transit
         condition:
           type: duration_elapsed
@@ -252,22 +253,22 @@ state_graphs:
         next_location: { type: next_in_sequence }
 
 entity_types:
-  chassis:
+  battery_module:
     state_graph: product_flow
     initial_state: waiting
     spawn_rule: schedule
     properties:
       product_type:
         type: categorical
-        values: [base_model, pro_model]
-        weights: [0.7, 0.3]
+        values: [standard_range, long_range]
+        weights: [0.6, 0.4]
       station_index:
         type: integer
         initial: 0
 
 schedule:
   type: poisson
-  rate_per_hour: 20
+  rate_per_hour: 24
   shifts:
     - name: morning
       start: "06:00"

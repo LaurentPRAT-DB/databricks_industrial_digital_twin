@@ -103,4 +103,4 @@ def test_executor_selects_highest_priority():
 
     transition = executor.evaluate(entity, ctx)
     assert transition is not None
-    assert transition.to_state == "machining"
+    assert transition.to_state == "cnc_milling"

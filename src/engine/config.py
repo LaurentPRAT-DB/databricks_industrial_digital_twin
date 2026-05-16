@@ -108,6 +108,7 @@ class ScheduleConfig(BaseModel):
 
 class SimulationConfig(BaseModel):
     name: str = "Unnamed Simulation"
+    description: str = ""
     duration_hours: float = 8.0
     time_step_seconds: float = 1.0
     seed: Optional[int] = None

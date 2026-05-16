@@ -48,6 +48,6 @@ def test_engine_entities_flow_through_states():
         states_seen.add(t["to_state"])
 
     assert "in_transit" in states_seen
-    assert "machining" in states_seen
-    assert "assembling" in states_seen
-    assert "inspecting" in states_seen
+    assert "cnc_milling" in states_seen
+    assert "press_fitting" in states_seen
+    assert "cmm_inspection" in states_seen

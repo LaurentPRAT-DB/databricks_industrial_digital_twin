@@ -63,7 +63,7 @@ class SimulationRecorder:
 
     def compute_summary(self) -> dict[str, Any]:
         completed = sum(
-            1 for e in self.events if e.get("event_type") == "product_completed"
+            1 for t in self.state_transitions if t.get("to_state") == "done"
         )
         total_transitions = len(self.state_transitions)
         total_events = len(self.events)

@@ -304,18 +304,32 @@ class SimulationEngine:
         )
         transition = executor.evaluate(entity, ctx)
         if transition:
-            # On completing processing, advance station_index
-            if entity.state in ("machining", "assembling", "inspecting") and transition.to_state == "in_transit":
+            # On completing any stationary (processing) state, advance station_index
+            if state_config and state_config.type == "stationary" and transition.to_state == "in_transit":
                 entity.properties["station_index"] = entity.properties.get("station_index", 0) + 1
 
             self._handle_transition(entity, transition)
 
     def get_current_state(self) -> dict[str, Any]:
         """Get current simulation state for WebSocket broadcasting."""
+        loc_pos = {l.id: l.position for l in self.config.facility.locations}
+        paths = []
+        for p in self.config.facility.paths:
+            f = loc_pos.get(p.from_id)
+            t = loc_pos.get(p.to_id)
+            if f and t:
+                paths.append({"from": {"x": f["x"], "y": f["y"]}, "to": {"x": t["x"], "y": t["y"]}})
+
         return {
             "entities": [e.to_dict() for e in self.entities.values() if not e.destroyed],
             "resources": [r.to_dict() for r in self.resource_mgr.resources.values()],
             "metrics": self.get_metrics(),
+            "config": {
+                "name": self.config.name,
+                "description": self.config.description,
+                "facility_name": self.config.facility.name,
+            },
+            "paths": paths,
             "sim_time": self.sim_time.isoformat(),
             "elapsed_s": self.elapsed_s,
         }

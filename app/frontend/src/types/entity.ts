@@ -30,9 +30,22 @@ export interface Metrics {
   elapsed_hours: number;
 }
 
+export interface SimConfig {
+  name: string;
+  description: string;
+  facility_name: string;
+}
+
+export interface PathSegment {
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+}
+
 export interface SimulationState {
   entities: Entity[];
   resources: Resource[];
   metrics: Metrics;
+  config: SimConfig;
+  paths: PathSegment[];
   sim_time: string;
 }

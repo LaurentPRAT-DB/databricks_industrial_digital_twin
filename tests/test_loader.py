@@ -5,7 +5,7 @@ from src.engine.loader import load_config
 
 def test_load_assembly_line_config():
     config = load_config("configs/assembly_line_3station.yaml")
-    assert config.name == "3-Station Assembly Line"
+    assert config.name == "Smartphone Chassis Line"
     assert config.duration_hours == 8
     assert config.time_step_seconds == 1
     assert config.seed == 42
@@ -15,11 +15,11 @@ def test_facility_locations():
     config = load_config("configs/assembly_line_3station.yaml")
     assert len(config.facility.locations) == 9
     loc_ids = [l.id for l in config.facility.locations]
-    assert "dock_in" in loc_ids
-    assert "cnc_1" in loc_ids
-    assert "assembly_1" in loc_ids
-    assert "qc_1" in loc_ids
-    assert "dock_out" in loc_ids
+    assert "raw_billet_intake" in loc_ids
+    assert "cnc_mill_1" in loc_ids
+    assert "press_fit_station" in loc_ids
+    assert "cmm_inspector" in loc_ids
+    assert "finished_goods_out" in loc_ids
 
 
 def test_facility_paths():
@@ -33,19 +33,19 @@ def test_state_graph():
     sg = config.state_graphs["product_flow"]
     assert "waiting" in sg.states
     assert "in_transit" in sg.states
-    assert "machining" in sg.states
-    assert "assembling" in sg.states
-    assert "inspecting" in sg.states
+    assert "cnc_milling" in sg.states
+    assert "press_fitting" in sg.states
+    assert "cmm_inspection" in sg.states
     assert "done" in sg.states
     assert len(sg.transitions) == 9
 
 
 def test_entity_types():
     config = load_config("configs/assembly_line_3station.yaml")
-    assert "widget" in config.entity_types
-    widget = config.entity_types["widget"]
-    assert widget.state_graph == "product_flow"
-    assert widget.initial_state == "waiting"
+    assert "chassis" in config.entity_types
+    chassis = config.entity_types["chassis"]
+    assert chassis.state_graph == "product_flow"
+    assert chassis.initial_state == "waiting"
 
 
 def test_schedule():

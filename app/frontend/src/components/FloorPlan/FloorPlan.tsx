@@ -1,8 +1,10 @@
-import type { Entity, Resource } from '../../types/entity';
+import { useMemo } from 'react';
+import type { Entity, Resource, PathSegment } from '../../types/entity';
 
 interface Props {
   entities: Entity[];
   resources: Resource[];
+  paths: PathSegment[];
 }
 
 const SCALE = 6;
@@ -15,30 +17,39 @@ const LOCATION_COLORS: Record<string, string> = {
   exit_point: '#f59e0b',
 };
 
-const STATE_COLORS: Record<string, string> = {
+const FIXED_STATE_COLORS: Record<string, string> = {
   waiting: '#eab308',
   in_transit: '#22c55e',
-  machining: '#3b82f6',
-  assembling: '#8b5cf6',
-  inspecting: '#ec4899',
   done: '#6b7280',
 };
 
-const PATHS = [
-  { from: { x: 5, y: 25 }, to: { x: 20, y: 25 } },
-  { from: { x: 20, y: 25 }, to: { x: 35, y: 15 } },
-  { from: { x: 20, y: 25 }, to: { x: 35, y: 35 } },
-  { from: { x: 35, y: 15 }, to: { x: 50, y: 25 } },
-  { from: { x: 35, y: 35 }, to: { x: 50, y: 25 } },
-  { from: { x: 50, y: 25 }, to: { x: 65, y: 25 } },
-  { from: { x: 65, y: 25 }, to: { x: 80, y: 25 } },
-  { from: { x: 80, y: 25 }, to: { x: 90, y: 25 } },
-  { from: { x: 90, y: 25 }, to: { x: 95, y: 25 } },
-];
+const PROCESS_COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f97316', '#14b8a6'];
 
-export default function FloorPlan({ entities, resources }: Props) {
+function getStateColor(state: string, processStates: string[]): string {
+  if (FIXED_STATE_COLORS[state]) return FIXED_STATE_COLORS[state];
+  const idx = processStates.indexOf(state);
+  return idx >= 0 ? PROCESS_COLORS[idx % PROCESS_COLORS.length] : '#9ca3af';
+}
+
+export default function FloorPlan({ entities, resources, paths }: Props) {
   const width = 100 * SCALE + PADDING * 2;
   const height = 50 * SCALE + PADDING * 2;
+
+  const allStates = useMemo(() => {
+    const seen = new Set<string>();
+    for (const e of entities) seen.add(e.state);
+    return Array.from(seen);
+  }, [entities]);
+
+  const processStates = useMemo(
+    () => allStates.filter(s => !FIXED_STATE_COLORS[s]),
+    [allStates],
+  );
+
+  const legendStates = useMemo(() => {
+    const fixed = Object.keys(FIXED_STATE_COLORS).filter(s => allStates.includes(s));
+    return [...fixed.slice(0, 2), ...processStates, ...fixed.slice(2)];
+  }, [allStates, processStates]);
 
   return (
     <svg
@@ -47,7 +58,7 @@ export default function FloorPlan({ entities, resources }: Props) {
       preserveAspectRatio="xMidYMid meet"
     >
       {/* Paths */}
-      {PATHS.map((p, i) => (
+      {paths.map((p, i) => (
         <line
           key={`path-${i}`}
           x1={p.from.x * SCALE + PADDING}
@@ -120,7 +131,7 @@ export default function FloorPlan({ entities, resources }: Props) {
       {entities.map((e) => {
         const cx = e.x * SCALE + PADDING;
         const cy = e.y * SCALE + PADDING;
-        const color = STATE_COLORS[e.state] || '#9ca3af';
+        const color = getStateColor(e.state, processStates);
 
         return (
           <circle
@@ -139,11 +150,11 @@ export default function FloorPlan({ entities, resources }: Props) {
       })}
 
       {/* Legend */}
-      <g transform={`translate(${width - 120}, 10)`}>
-        {Object.entries(STATE_COLORS).map(([state, color], i) => (
+      <g transform={`translate(${width - 130}, 10)`}>
+        {legendStates.map((state, i) => (
           <g key={state} transform={`translate(0, ${i * 14})`}>
-            <circle cx={5} cy={5} r={4} fill={color} />
-            <text x={14} y={9} fontSize="8" fill="#d1d5db">{state}</text>
+            <circle cx={5} cy={5} r={4} fill={getStateColor(state, processStates)} />
+            <text x={14} y={9} fontSize="8" fill="#d1d5db">{state.replace(/_/g, ' ')}</text>
           </g>
         ))}
       </g>
