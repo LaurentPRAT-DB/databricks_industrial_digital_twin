@@ -36,7 +36,12 @@ function App() {
       <header className="flex items-center justify-between px-6 py-3 bg-slate-800 border-b border-slate-700">
         <div className="flex items-center gap-3">
           <span className="text-xl font-bold">{sim.simConfig.name || 'Digital Twin'}</span>
-          {sim.simConfig.description && (
+          {sim.whatifName && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-600/20 border border-amber-500/40 text-amber-400">
+              <span className="text-[10px]">&#9654;</span> {sim.whatifName}
+            </span>
+          )}
+          {sim.simConfig.description && !sim.whatifName && (
             <span className="text-sm text-slate-400">{sim.simConfig.description}</span>
           )}
         </div>

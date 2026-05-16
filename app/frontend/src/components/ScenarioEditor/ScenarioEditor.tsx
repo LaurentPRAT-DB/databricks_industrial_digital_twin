@@ -64,6 +64,7 @@ function getDefaultValue(key: keyof DeviationParams): number {
 export default function ScenarioEditor({ scenarioId, onSimulate, onClose }: Props) {
   const [locations, setLocations] = useState<LocationParameter[]>([]);
   const [overrides, setOverrides] = useState<Record<string, DeviationParams>>({});
+  const [scenarioName, setScenarioName] = useState('');
   const [running, setRunning] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -122,7 +123,7 @@ export default function ScenarioEditor({ scenarioId, onSimulate, onClose }: Prop
       await fetch('/api/scenarios/simulate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: scenarioId, overrides: ovr }),
+        body: JSON.stringify({ id: scenarioId, name: scenarioName, overrides: ovr }),
       });
       onSimulate();
     } catch (e) {
@@ -152,6 +153,17 @@ export default function ScenarioEditor({ scenarioId, onSimulate, onClose }: Prop
           <p className="text-[10px] text-slate-500 mt-0.5">Configure equipment deviations</p>
         </div>
         <button onClick={onClose} className="text-slate-400 hover:text-white text-lg leading-none">&times;</button>
+      </div>
+
+      {/* Scenario name */}
+      <div className="px-4 py-2 border-b border-slate-700/50 shrink-0">
+        <input
+          type="text"
+          value={scenarioName}
+          onChange={e => setScenarioName(e.target.value)}
+          placeholder="Name this scenario..."
+          className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+        />
       </div>
 
       {/* Machine Cards */}
