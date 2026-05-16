@@ -46,6 +46,7 @@ export function useSimulationReplay() {
   const simConfig: SimConfig = frameData?.config ?? { name: '', description: '', facility_name: '' };
   const scenarioId: string = frameData?.scenario_id ?? '';
   const whatifName: string | null = frameData?.whatif_name ?? null;
+  const whatifOverrides: Record<string, Record<string, number>> | null = frameData?.whatif_overrides ?? null;
   const paths: PathSegment[] = frameData?.paths ?? [];
   const locations: LocationMeta[] = frameData?.locations ?? [];
   const stateDescriptions: Record<string, StateDescription> = frameData?.state_descriptions ?? {};
@@ -125,7 +126,7 @@ export function useSimulationReplay() {
   const changeSpeed = useCallback((s: PlaybackSpeed) => setSpeed(s), []);
 
   return {
-    entities, resources, metrics, simConfig, scenarioId, whatifName, paths, locations, stateDescriptions,
+    entities, resources, metrics, simConfig, scenarioId, whatifName, whatifOverrides, paths, locations, stateDescriptions,
     isLoading, isPlaying, speed, currentFrameIndex, totalFrames,
     progressPct, currentSimTime, elapsedHours,
     play, pause, togglePlayPause, seekTo, seekToPercent, changeSpeed,

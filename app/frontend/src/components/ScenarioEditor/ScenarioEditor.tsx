@@ -307,45 +307,47 @@ export default function ScenarioEditor({ scenarioId, onSimulate, onClose }: Prop
       )}
 
       {/* Footer actions */}
-      <div className="px-4 py-3 border-t border-slate-700 flex items-center gap-2 shrink-0">
+      <div className="px-4 py-3 border-t border-slate-700 space-y-2 shrink-0">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={saveWhatIf}
+            disabled={!scenarioName.trim()}
+            className={`flex-1 py-2 text-xs font-bold rounded transition-colors uppercase tracking-wide ${
+              saveFlash
+                ? 'bg-green-600 text-white'
+                : 'bg-slate-700 hover:bg-slate-600 text-slate-300 disabled:opacity-40 disabled:hover:bg-slate-700'
+            }`}
+            title={scenarioName.trim() ? 'Save what-if config' : 'Enter a name first'}
+          >
+            {saveFlash ? 'Saved!' : 'Save'}
+          </button>
+          <button
+            onClick={() => setShowLoadMenu(!showLoadMenu)}
+            className={`flex-1 py-2 text-xs font-bold rounded transition-colors uppercase tracking-wide ${
+              showLoadMenu
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+            }`}
+            title="Load saved what-if"
+          >
+            Load
+          </button>
+          {hasOverrides && (
+            <button
+              onClick={resetAll}
+              className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-bold rounded transition-colors uppercase tracking-wide"
+            >
+              Reset
+            </button>
+          )}
+        </div>
         <button
           onClick={runSimulation}
           disabled={running}
-          className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 text-white text-xs font-bold rounded transition-colors uppercase tracking-wide"
+          className="w-full py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 text-white text-xs font-bold rounded transition-colors uppercase tracking-wide"
         >
           {running ? 'Computing...' : 'Run Simulation'}
         </button>
-        <button
-          onClick={saveWhatIf}
-          disabled={!scenarioName.trim()}
-          className={`px-3 py-2 text-xs font-medium rounded transition-colors ${
-            saveFlash
-              ? 'bg-green-600 text-white'
-              : 'bg-slate-700 hover:bg-slate-600 text-slate-300 disabled:opacity-40 disabled:hover:bg-slate-700'
-          }`}
-          title={scenarioName.trim() ? 'Save what-if config' : 'Enter a name first'}
-        >
-          {saveFlash ? 'Saved!' : 'Save'}
-        </button>
-        <button
-          onClick={() => setShowLoadMenu(!showLoadMenu)}
-          className={`px-3 py-2 text-xs font-medium rounded transition-colors ${
-            showLoadMenu
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-          }`}
-          title="Load saved what-if"
-        >
-          Load
-        </button>
-        {hasOverrides && (
-          <button
-            onClick={resetAll}
-            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium rounded transition-colors"
-          >
-            Reset
-          </button>
-        )}
       </div>
     </div>
   );

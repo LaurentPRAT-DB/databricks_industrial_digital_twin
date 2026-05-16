@@ -107,4 +107,5 @@ export interface SimulationFrameData {
   snapshot_interval_s: number;
   scenario_id: string;
   whatif_name: string | null;
+  whatif_overrides: Record<string, Record<string, number>> | null;
 }

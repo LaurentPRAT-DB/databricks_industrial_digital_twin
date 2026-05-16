@@ -7,6 +7,7 @@ import ProductionBoard from './components/ProductionBoard/ProductionBoard';
 import EntityList from './components/EntityList/EntityList';
 import ScenarioPicker from './components/ScenarioPicker/ScenarioPicker';
 import ScenarioEditor from './components/ScenarioEditor/ScenarioEditor';
+import WhatIfSummary from './components/ScenarioEditor/WhatIfSummary';
 import ProcessInfo from './components/ProcessInfo/ProcessInfo';
 import PlaybackBar from './components/PlaybackBar/PlaybackBar';
 
@@ -120,14 +121,21 @@ function App() {
           <EntityList entities={sim.entities} locations={sim.locations} stateDescriptions={sim.stateDescriptions} />
         </div>
 
-        {/* What-If Editor (far right) */}
-        {showEditor && sim.scenarioId && (
+        {/* What-If: summary when active, editor when editing */}
+        {showEditor && sim.scenarioId ? (
           <ScenarioEditor
             scenarioId={sim.scenarioId}
-            onSimulate={sim.loadFrames}
+            onSimulate={() => { sim.loadFrames(); setShowEditor(false); }}
             onClose={() => setShowEditor(false)}
           />
-        )}
+        ) : sim.whatifName && sim.whatifOverrides ? (
+          <WhatIfSummary
+            whatifName={sim.whatifName}
+            overrides={sim.whatifOverrides}
+            locations={sim.locations}
+            onEdit={() => setShowEditor(true)}
+          />
+        ) : null}
       </div>
     </div>
   );

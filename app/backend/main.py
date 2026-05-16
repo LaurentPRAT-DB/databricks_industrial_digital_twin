@@ -84,6 +84,7 @@ def _precompute_simulation(scenario_id: str, overrides: dict[str, dict[str, floa
         "state_descriptions": state["state_descriptions"],
         "scenario_id": scenario_id,
         "whatif_name": whatif_name,
+        "whatif_overrides": overrides,
     }
 
     while engine.sim_time < engine.end_time:
