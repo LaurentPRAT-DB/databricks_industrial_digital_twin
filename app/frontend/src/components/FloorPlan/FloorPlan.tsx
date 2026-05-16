@@ -1,14 +1,15 @@
 import { useMemo } from 'react';
-import type { Entity, Resource, PathSegment } from '../../types/entity';
+import type { Entity, Resource, PathSegment, LocationMeta } from '../../types/entity';
 
 interface Props {
   entities: Entity[];
   resources: Resource[];
   paths: PathSegment[];
+  locations: LocationMeta[];
 }
 
-const SCALE = 6;
-const PADDING = 20;
+const SCALE = 7;
+const PADDING = 30;
 
 const LOCATION_COLORS: Record<string, string> = {
   machine: '#3b82f6',
@@ -31,30 +32,31 @@ function getStateColor(state: string, processStates: string[]): string {
   return idx >= 0 ? PROCESS_COLORS[idx % PROCESS_COLORS.length] : '#9ca3af';
 }
 
-export default function FloorPlan({ entities, resources, paths }: Props) {
+export default function FloorPlan({ entities, resources, paths, locations }: Props) {
   const width = 100 * SCALE + PADDING * 2;
   const height = 50 * SCALE + PADDING * 2;
 
-  const allStates = useMemo(() => {
-    const seen = new Set<string>();
-    for (const e of entities) seen.add(e.state);
-    return Array.from(seen);
-  }, [entities]);
+  const labelMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const loc of locations) m.set(loc.id, loc.label);
+    return m;
+  }, [locations]);
 
   const processStates = useMemo(
-    () => allStates.filter(s => !FIXED_STATE_COLORS[s]),
-    [allStates],
+    () => {
+      const seen = new Set<string>();
+      for (const e of entities) {
+        if (!FIXED_STATE_COLORS[e.state]) seen.add(e.state);
+      }
+      return Array.from(seen);
+    },
+    [entities],
   );
-
-  const legendStates = useMemo(() => {
-    const fixed = Object.keys(FIXED_STATE_COLORS).filter(s => allStates.includes(s));
-    return [...fixed.slice(0, 2), ...processStates, ...fixed.slice(2)];
-  }, [allStates, processStates]);
 
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
-      className="w-full h-full bg-slate-800 rounded-lg"
+      className="w-full h-full bg-slate-800/50 rounded-lg"
       preserveAspectRatio="xMidYMid meet"
     >
       {/* Paths */}
@@ -65,9 +67,10 @@ export default function FloorPlan({ entities, resources, paths }: Props) {
           y1={p.from.y * SCALE + PADDING}
           x2={p.to.x * SCALE + PADDING}
           y2={p.to.y * SCALE + PADDING}
-          stroke="#374151"
-          strokeWidth="2"
-          strokeDasharray="4 2"
+          stroke="#475569"
+          strokeWidth="1.5"
+          strokeDasharray="6 3"
+          opacity="0.6"
         />
       ))}
 
@@ -76,49 +79,71 @@ export default function FloorPlan({ entities, resources, paths }: Props) {
         const cx = r.x * SCALE + PADDING;
         const cy = r.y * SCALE + PADDING;
         const color = LOCATION_COLORS[r.type] || '#4b5563';
-        const size = r.type === 'machine' ? 14 : 10;
+        const size = r.type === 'machine' ? 16 : 11;
         const isBusy = r.status === 'busy';
+        const label = labelMap.get(r.id) || r.id.replace(/_/g, ' ');
+        const isAboveCenter = r.y < 25;
 
         return (
           <g key={r.id}>
+            {/* Glow effect for busy machines */}
+            {isBusy && r.type === 'machine' && (
+              <rect
+                x={cx - size - 3}
+                y={cy - size - 3}
+                width={(size + 3) * 2}
+                height={(size + 3) * 2}
+                rx={6}
+                fill="none"
+                stroke={color}
+                strokeWidth="1"
+                opacity="0.4"
+              />
+            )}
             <rect
               x={cx - size}
               y={cy - size}
               width={size * 2}
               height={size * 2}
-              rx={r.type === 'buffer' ? 2 : 4}
-              fill={isBusy ? color : `${color}44`}
+              rx={r.type === 'buffer' ? 3 : 5}
+              fill={isBusy ? color : `${color}33`}
               stroke={color}
-              strokeWidth={isBusy ? 2 : 1}
+              strokeWidth={isBusy ? 2 : 1.2}
             />
+            {/* Label — positioned above or below depending on vertical position */}
             <text
               x={cx}
-              y={cy + size + 12}
+              y={isAboveCenter ? cy - size - 8 : cy + size + 14}
               textAnchor="middle"
-              fontSize="8"
-              fill="#9ca3af"
+              fontSize="10"
+              fontWeight="600"
+              fill="#f1f5f9"
+              letterSpacing="0.3"
             >
-              {r.id.replace(/_/g, ' ')}
+              {label}
             </text>
+            {/* Machine icon */}
             {r.type === 'machine' && (
               <text
                 x={cx}
-                y={cy + 3}
+                y={cy + 4}
                 textAnchor="middle"
-                fontSize="7"
+                fontSize="9"
                 fill="white"
                 fontWeight="bold"
               >
                 {isBusy ? '⚙' : '○'}
               </text>
             )}
+            {/* Buffer count */}
             {r.type === 'buffer' && r.queue_depth > 0 && (
               <text
                 x={cx}
-                y={cy + 3}
+                y={cy + 4}
                 textAnchor="middle"
-                fontSize="7"
+                fontSize="9"
                 fill="white"
+                fontWeight="bold"
               >
                 {r.queue_depth}
               </text>
@@ -138,26 +163,16 @@ export default function FloorPlan({ entities, resources, paths }: Props) {
             key={e.id}
             cx={cx}
             cy={cy}
-            r={4}
+            r={4.5}
             fill={color}
             stroke="white"
-            strokeWidth="0.5"
+            strokeWidth="0.6"
             opacity={0.9}
           >
             <title>{`${e.id} [${e.state}]`}</title>
           </circle>
         );
       })}
-
-      {/* Legend */}
-      <g transform={`translate(${width - 130}, 10)`}>
-        {legendStates.map((state, i) => (
-          <g key={state} transform={`translate(0, ${i * 14})`}>
-            <circle cx={5} cy={5} r={4} fill={getStateColor(state, processStates)} />
-            <text x={14} y={9} fontSize="8" fill="#d1d5db">{state.replace(/_/g, ' ')}</text>
-          </g>
-        ))}
-      </g>
     </svg>
   );
 }

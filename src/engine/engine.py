@@ -320,6 +320,28 @@ class SimulationEngine:
             if f and t:
                 paths.append({"from": {"x": f["x"], "y": f["y"]}, "to": {"x": t["x"], "y": t["y"]}})
 
+        locations_meta = []
+        for loc in self.config.facility.locations:
+            meta: dict[str, Any] = {
+                "id": loc.id,
+                "type": loc.type,
+                "label": loc.label or loc.id.replace("_", " ").title(),
+                "x": loc.position["x"],
+                "y": loc.position["y"],
+                "capacity": loc.capacity,
+            }
+            if loc.properties:
+                meta["properties"] = loc.properties
+            locations_meta.append(meta)
+
+        state_descriptions = {}
+        for sg_name, sg in self.config.state_graphs.items():
+            for state_name, state_cfg in sg.states.items():
+                info: dict[str, Any] = {"description": state_cfg.description, "type": state_cfg.type}
+                if state_cfg.duration and state_cfg.duration.params:
+                    info["duration"] = state_cfg.duration.params
+                state_descriptions[state_name] = info
+
         return {
             "entities": [e.to_dict() for e in self.entities.values() if not e.destroyed],
             "resources": [r.to_dict() for r in self.resource_mgr.resources.values()],
@@ -330,6 +352,8 @@ class SimulationEngine:
                 "facility_name": self.config.facility.name,
             },
             "paths": paths,
+            "locations": locations_meta,
+            "state_descriptions": state_descriptions,
             "sim_time": self.sim_time.isoformat(),
             "elapsed_s": self.elapsed_s,
         }

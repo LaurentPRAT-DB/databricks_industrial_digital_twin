@@ -14,49 +14,58 @@ facility:
   locations:
     - id: cell_delivery
       type: spawn_point
+      label: "Cell Delivery"
       position: { x: 10, y: 12 }
 
     - id: cell_buffer
       type: buffer
+      label: "Cell Buffer"
       position: { x: 28, y: 12 }
       capacity: 12
 
     - id: stacker_1
       type: machine
+      label: "Stacker 1"
       position: { x: 46, y: 12 }
       capacity: 1
       properties: { cycle_time_mean: 90, mtbf_hours: 300 }
 
     - id: stacker_2
       type: machine
+      label: "Stacker 2"
       position: { x: 64, y: 12 }
       capacity: 1
       properties: { cycle_time_mean: 90, mtbf_hours: 300 }
 
     - id: stacked_module_queue
       type: buffer
+      label: "Stacked Queue"
       position: { x: 80, y: 25 }
       capacity: 6
 
     - id: laser_welder
       type: machine
+      label: "Laser Welder"
       position: { x: 64, y: 38 }
       capacity: 1
       properties: { cycle_time_mean: 150, mtbf_hours: 400 }
 
     - id: welded_module_queue
       type: buffer
+      label: "Welded Queue"
       position: { x: 46, y: 38 }
       capacity: 4
 
     - id: eol_tester
       type: machine
+      label: "EOL Tester"
       position: { x: 28, y: 38 }
       capacity: 1
       properties: { cycle_time_mean: 45, mtbf_hours: 800 }
 
     - id: pack_output
       type: exit_point
+      label: "Pack Output"
       position: { x: 10, y: 38 }
 
   paths:

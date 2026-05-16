@@ -41,11 +41,30 @@ export interface PathSegment {
   to: { x: number; y: number };
 }
 
+export interface LocationMeta {
+  id: string;
+  type: string;
+  label: string;
+  x: number;
+  y: number;
+  capacity: number;
+  properties?: Record<string, number>;
+  model_3d?: string;
+}
+
+export interface StateDescription {
+  description: string;
+  type: string;
+  duration?: { mean?: number; std?: number; value?: number };
+}
+
 export interface SimulationState {
   entities: Entity[];
   resources: Resource[];
   metrics: Metrics;
   config: SimConfig;
   paths: PathSegment[];
+  locations: LocationMeta[];
+  state_descriptions: Record<string, StateDescription>;
   sim_time: string;
 }

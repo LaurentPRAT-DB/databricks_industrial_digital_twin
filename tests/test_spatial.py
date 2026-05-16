@@ -39,7 +39,7 @@ def test_compute_route_positions():
     route = g.compute_route("raw_billet_intake", "billet_queue")
     assert len(route) == 2
     assert route[0].x == 5 and route[0].y == 25
-    assert route[1].x == 20 and route[1].y == 25
+    assert route[1].x == 18 and route[1].y == 25
 
 
 def test_advance_along_route():

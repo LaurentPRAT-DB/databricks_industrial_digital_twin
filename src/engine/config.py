@@ -55,7 +55,9 @@ class LocationConfig(BaseModel):
     type: str
     position: dict[str, float]
     capacity: int = 1
+    label: str = ""
     properties: dict[str, Any] = Field(default_factory=dict)
+    model_3d: Optional[str] = None
 
 
 class PathConfig(BaseModel):

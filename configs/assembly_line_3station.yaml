@@ -13,55 +13,64 @@ facility:
   locations:
     - id: raw_billet_intake
       type: spawn_point
+      label: "Intake"
       position: { x: 5, y: 25 }
 
     - id: billet_queue
       type: buffer
-      position: { x: 20, y: 25 }
+      label: "Queue"
+      position: { x: 18, y: 25 }
       capacity: 10
 
     - id: cnc_mill_1
       type: machine
-      position: { x: 35, y: 15 }
+      label: "CNC Mill 1"
+      position: { x: 33, y: 13 }
       capacity: 1
       properties: { cycle_time_mean: 120, mtbf_hours: 200 }
 
     - id: cnc_mill_2
       type: machine
-      position: { x: 35, y: 35 }
+      label: "CNC Mill 2"
+      position: { x: 33, y: 37 }
       capacity: 1
       properties: { cycle_time_mean: 120, mtbf_hours: 200 }
 
     - id: milled_chassis_queue
       type: buffer
-      position: { x: 50, y: 25 }
+      label: "Queue"
+      position: { x: 48, y: 25 }
       capacity: 8
 
     - id: press_fit_station
       type: machine
-      position: { x: 65, y: 25 }
+      label: "Press Fit"
+      position: { x: 62, y: 25 }
       capacity: 1
       properties: { cycle_time_mean: 180, mtbf_hours: 500 }
 
     - id: assembled_chassis_queue
       type: buffer
-      position: { x: 80, y: 25 }
+      label: "Queue"
+      position: { x: 76, y: 25 }
       capacity: 5
 
     - id: cmm_inspector
       type: machine
-      position: { x: 90, y: 25 }
+      label: "CMM"
+      position: { x: 88, y: 25 }
       capacity: 1
       properties: { cycle_time_mean: 60, mtbf_hours: 1000 }
 
     - id: finished_goods_out
       type: exit_point
-      position: { x: 95, y: 25 }
+      label: "Output"
+      position: { x: 97, y: 25 }
 
   paths:
     - from: raw_billet_intake
       to: billet_queue
-      distance: 15
+      distance: 13
     - from: billet_queue
       to: cnc_mill_1
       distance: 18
@@ -76,16 +85,16 @@ facility:
       distance: 18
     - from: milled_chassis_queue
       to: press_fit_station
-      distance: 15
+      distance: 14
     - from: press_fit_station
       to: assembled_chassis_queue
-      distance: 15
+      distance: 14
     - from: assembled_chassis_queue
       to: cmm_inspector
-      distance: 10
+      distance: 12
     - from: cmm_inspector
       to: finished_goods_out
-      distance: 5
+      distance: 9
 
 state_graphs:
   product_flow:

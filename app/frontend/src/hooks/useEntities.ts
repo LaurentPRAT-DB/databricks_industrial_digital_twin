@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import type { Entity, Resource, Metrics, SimConfig, PathSegment, SimulationState } from '../types/entity';
+import type { Entity, Resource, Metrics, SimConfig, PathSegment, LocationMeta, StateDescription, SimulationState } from '../types/entity';
 
 const WS_URL = `ws://${window.location.host}/ws/entities`;
 
@@ -16,6 +16,8 @@ export function useEntities() {
   });
   const [simConfig, setSimConfig] = useState<SimConfig>({ name: '', description: '', facility_name: '' });
   const [paths, setPaths] = useState<PathSegment[]>([]);
+  const [locations, setLocations] = useState<LocationMeta[]>([]);
+  const [stateDescriptions, setStateDescriptions] = useState<Record<string, StateDescription>>({});
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -40,6 +42,8 @@ export function useEntities() {
           if (state.metrics) setMetrics(state.metrics);
           if (state.config) setSimConfig(state.config);
           if (state.paths) setPaths(state.paths);
+          if (state.locations) setLocations(state.locations);
+          if (state.state_descriptions) setStateDescriptions(state.state_descriptions);
         } else if (msg.type === 'entity_delta') {
           const { deltas, removed, metrics: m, resources: r } = msg.data;
 
@@ -67,5 +71,5 @@ export function useEntities() {
     return () => { wsRef.current?.close(); };
   }, []);
 
-  return { entities: Array.from(entities.values()), resources, metrics, simConfig, paths, connected };
+  return { entities: Array.from(entities.values()), resources, metrics, simConfig, paths, locations, stateDescriptions, connected };
 }
