@@ -1,10 +1,12 @@
 """FastAPI application for Industrial Digital Twin."""
 
+import json
 import logging
 import os
+import re
 import time as wall_time
 from contextlib import asynccontextmanager
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -23,8 +25,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(na
 logger = logging.getLogger(__name__)
 
 CONFIGS_DIR = Path(os.getenv("SIM_CONFIGS_DIR", "configs"))
+WHATIF_DIR = CONFIGS_DIR / "whatif"
 DEFAULT_CONFIG = os.getenv("SIM_CONFIG", "assembly_line_3station")
 SNAPSHOT_INTERVAL_S = int(os.getenv("SIM_SNAPSHOT_INTERVAL", "5"))
+
+
+def _slugify(name: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")[:64]
 
 _active_scenario_id: str = ""
 _active_whatif_name: str | None = None
@@ -237,6 +244,61 @@ async def get_scenario_parameters(scenario_id: str):
             "deviations": dev.model_dump(),
         })
     return {"scenario_id": scenario_id, "locations": locations}
+
+
+class SaveWhatIfRequest(BaseModel):
+    scenario_id: str
+    name: str
+    overrides: dict[str, dict[str, float]] = {}
+
+
+@app.post("/api/whatif/save")
+async def save_whatif(req: SaveWhatIfRequest):
+    name = req.name.strip()
+    if not name:
+        return JSONResponse(status_code=400, content={"error": "Name is required"})
+    slug = _slugify(name)
+    if not slug:
+        return JSONResponse(status_code=400, content={"error": "Invalid name"})
+    dest = WHATIF_DIR / req.scenario_id
+    dest.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "name": name,
+        "scenario_id": req.scenario_id,
+        "overrides": req.overrides,
+        "saved_at": datetime.now(timezone.utc).isoformat(),
+    }
+    filepath = dest / f"{slug}.json"
+    filepath.write_text(json.dumps(payload, indent=2))
+    return {"status": "saved", "filename": f"{slug}.json"}
+
+
+@app.get("/api/whatif/list/{scenario_id}")
+async def list_whatifs(scenario_id: str):
+    dest = WHATIF_DIR / scenario_id
+    if not dest.exists():
+        return {"items": []}
+    items = []
+    for f in sorted(dest.glob("*.json")):
+        try:
+            data = json.loads(f.read_text())
+            items.append({
+                "name": data.get("name", f.stem),
+                "filename": f.name,
+                "saved_at": data.get("saved_at"),
+            })
+        except Exception:
+            continue
+    return {"items": items}
+
+
+@app.get("/api/whatif/load/{scenario_id}/{filename}")
+async def load_whatif(scenario_id: str, filename: str):
+    filepath = WHATIF_DIR / scenario_id / filename
+    if not filepath.exists():
+        return JSONResponse(status_code=404, content={"error": "What-if not found"})
+    data = json.loads(filepath.read_text())
+    return data
 
 
 @app.get("/api/status")

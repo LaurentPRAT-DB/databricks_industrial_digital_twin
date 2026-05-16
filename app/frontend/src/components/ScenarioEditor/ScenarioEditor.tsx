@@ -17,6 +17,12 @@ interface SliderDef {
   format: (v: number) => string;
 }
 
+interface SavedWhatIf {
+  name: string;
+  filename: string;
+  saved_at: string | null;
+}
+
 const SLIDERS: SliderDef[] = [
   { key: 'cycle_time_factor', label: 'Cycle Time', min: 0.5, max: 3.0, step: 0.1, unit: 'x', format: v => `${v.toFixed(1)}x` },
   { key: 'cycle_time_variability', label: 'Variability', min: 0.5, max: 5.0, step: 0.1, unit: 'x', format: v => `${v.toFixed(1)}x` },
@@ -61,12 +67,38 @@ function getDefaultValue(key: keyof DeviationParams): number {
   return DEFAULT_DEV[key];
 }
 
+function buildNonDefaultOverrides(overrides: Record<string, DeviationParams>): Record<string, Record<string, number>> {
+  const ovr: Record<string, Record<string, number>> = {};
+  for (const [locId, dev] of Object.entries(overrides)) {
+    const nonDefault: Record<string, number> = {};
+    for (const [k, v] of Object.entries(dev)) {
+      if (v !== getDefaultValue(k as keyof DeviationParams)) {
+        nonDefault[k] = v;
+      }
+    }
+    if (Object.keys(nonDefault).length > 0) ovr[locId] = nonDefault;
+  }
+  return ovr;
+}
+
 export default function ScenarioEditor({ scenarioId, onSimulate, onClose }: Props) {
   const [locations, setLocations] = useState<LocationParameter[]>([]);
   const [overrides, setOverrides] = useState<Record<string, DeviationParams>>({});
   const [scenarioName, setScenarioName] = useState('');
   const [running, setRunning] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [savedList, setSavedList] = useState<SavedWhatIf[]>([]);
+  const [showLoadMenu, setShowLoadMenu] = useState(false);
+  const [saveFlash, setSaveFlash] = useState(false);
+
+  const fetchSavedList = useCallback(async () => {
+    if (!scenarioId) return;
+    try {
+      const res = await fetch(`/api/whatif/list/${scenarioId}`);
+      const data = await res.json();
+      setSavedList(data.items || []);
+    } catch { /* ignore */ }
+  }, [scenarioId]);
 
   useEffect(() => {
     if (!scenarioId) return;
@@ -82,7 +114,8 @@ export default function ScenarioEditor({ scenarioId, onSimulate, onClose }: Prop
         setLoaded(true);
       })
       .catch(() => {});
-  }, [scenarioId]);
+    fetchSavedList();
+  }, [scenarioId, fetchSavedList]);
 
   const updateParam = useCallback((locId: string, key: keyof DeviationParams, value: number) => {
     setOverrides(prev => ({
@@ -109,17 +142,7 @@ export default function ScenarioEditor({ scenarioId, onSimulate, onClose }: Prop
   const runSimulation = useCallback(async () => {
     setRunning(true);
     try {
-      const ovr: Record<string, Record<string, number>> = {};
-      for (const [locId, dev] of Object.entries(overrides)) {
-        const nonDefault: Record<string, number> = {};
-        for (const [k, v] of Object.entries(dev)) {
-          if (v !== getDefaultValue(k as keyof DeviationParams)) {
-            nonDefault[k] = v;
-          }
-        }
-        if (Object.keys(nonDefault).length > 0) ovr[locId] = nonDefault;
-      }
-
+      const ovr = buildNonDefaultOverrides(overrides);
       await fetch('/api/scenarios/simulate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -130,7 +153,39 @@ export default function ScenarioEditor({ scenarioId, onSimulate, onClose }: Prop
       console.error('Simulation failed', e);
     }
     setRunning(false);
-  }, [scenarioId, overrides, onSimulate]);
+  }, [scenarioId, scenarioName, overrides, onSimulate]);
+
+  const saveWhatIf = useCallback(async () => {
+    const ovr = buildNonDefaultOverrides(overrides);
+    try {
+      await fetch('/api/whatif/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenario_id: scenarioId, name: scenarioName, overrides: ovr }),
+      });
+      setSaveFlash(true);
+      setTimeout(() => setSaveFlash(false), 1500);
+      fetchSavedList();
+    } catch (e) {
+      console.error('Save failed', e);
+    }
+  }, [scenarioId, scenarioName, overrides, fetchSavedList]);
+
+  const loadWhatIf = useCallback(async (filename: string) => {
+    try {
+      const res = await fetch(`/api/whatif/load/${scenarioId}/${filename}`);
+      const data = await res.json();
+      setScenarioName(data.name || '');
+      const init: Record<string, DeviationParams> = {};
+      for (const loc of locations) {
+        init[loc.id] = { ...DEFAULT_DEV, ...(data.overrides?.[loc.id] || {}) };
+      }
+      setOverrides(init);
+      setShowLoadMenu(false);
+    } catch (e) {
+      console.error('Load failed', e);
+    }
+  }, [scenarioId, locations]);
 
   const hasOverrides = Object.entries(overrides).some(([, dev]) =>
     Object.entries(dev).some(([k, v]) => v !== getDefaultValue(k as keyof DeviationParams))
@@ -225,6 +280,32 @@ export default function ScenarioEditor({ scenarioId, onSimulate, onClose }: Prop
         ))}
       </div>
 
+      {/* Load menu dropdown (above footer) */}
+      {showLoadMenu && (
+        <div className="px-4 py-2 border-t border-slate-700/50 bg-slate-750 max-h-40 overflow-y-auto shrink-0">
+          {savedList.length === 0 ? (
+            <p className="text-[10px] text-slate-500 text-center py-2">No saved scenarios</p>
+          ) : (
+            <div className="space-y-1">
+              {savedList.map(item => (
+                <button
+                  key={item.filename}
+                  onClick={() => loadWhatIf(item.filename)}
+                  className="w-full text-left px-2 py-1.5 rounded bg-slate-700 hover:bg-slate-600 transition-colors group"
+                >
+                  <div className="text-[11px] text-white font-medium">{item.name}</div>
+                  {item.saved_at && (
+                    <div className="text-[9px] text-slate-500 group-hover:text-slate-400">
+                      {new Date(item.saved_at).toLocaleString()}
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Footer actions */}
       <div className="px-4 py-3 border-t border-slate-700 flex items-center gap-2 shrink-0">
         <button
@@ -233,6 +314,29 @@ export default function ScenarioEditor({ scenarioId, onSimulate, onClose }: Prop
           className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 text-white text-xs font-bold rounded transition-colors uppercase tracking-wide"
         >
           {running ? 'Computing...' : 'Run Simulation'}
+        </button>
+        <button
+          onClick={saveWhatIf}
+          disabled={!scenarioName.trim()}
+          className={`px-3 py-2 text-xs font-medium rounded transition-colors ${
+            saveFlash
+              ? 'bg-green-600 text-white'
+              : 'bg-slate-700 hover:bg-slate-600 text-slate-300 disabled:opacity-40 disabled:hover:bg-slate-700'
+          }`}
+          title={scenarioName.trim() ? 'Save what-if config' : 'Enter a name first'}
+        >
+          {saveFlash ? 'Saved!' : 'Save'}
+        </button>
+        <button
+          onClick={() => setShowLoadMenu(!showLoadMenu)}
+          className={`px-3 py-2 text-xs font-medium rounded transition-colors ${
+            showLoadMenu
+              ? 'bg-blue-600 text-white'
+              : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+          }`}
+          title="Load saved what-if"
+        >
+          Load
         </button>
         {hasOverrides && (
           <button
