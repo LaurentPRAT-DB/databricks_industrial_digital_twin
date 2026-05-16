@@ -1,0 +1,617 @@
+simulation:
+  name: "Beverage Bottling Line"
+  description: "Depalletize → Rinse → Fill → Cap → Pasteurize → Label → Code → Case Pack → Palletize"
+  duration_hours: 8
+  time_step_seconds: 1
+  seed: 400
+
+facility:
+  name: "Brewery — Bottling Hall Line 2"
+  coordinate_system: cartesian_2d
+  bounds: { width: 100, height: 50, unit: meters }
+
+  locations:
+    - id: pallet_infeed
+      type: spawn_point
+      label: "Pallet Infeed"
+      position: { x: 3, y: 25 }
+
+    - id: depal_queue
+      type: buffer
+      label: "Depal Queue"
+      position: { x: 10, y: 25 }
+      capacity: 15
+
+    - id: depalletizer
+      type: machine
+      label: "Depalletizer"
+      position: { x: 17, y: 25 }
+      capacity: 1
+      properties: { cycle_time_mean: 3, mtbf_hours: 500 }
+
+    - id: rinse_queue
+      type: buffer
+      label: "Rinse Queue"
+      position: { x: 23, y: 25 }
+      capacity: 20
+
+    - id: rinser
+      type: machine
+      label: "Rinser"
+      position: { x: 29, y: 25 }
+      capacity: 1
+      properties: { cycle_time_mean: 5, mtbf_hours: 600 }
+
+    - id: fill_queue
+      type: buffer
+      label: "Fill Queue"
+      position: { x: 35, y: 25 }
+      capacity: 12
+
+    - id: filler
+      type: machine
+      label: "Filler"
+      position: { x: 41, y: 25 }
+      capacity: 1
+      properties: { cycle_time_mean: 8, mtbf_hours: 350 }
+
+    - id: cap_queue
+      type: buffer
+      label: "Cap Queue"
+      position: { x: 47, y: 25 }
+      capacity: 10
+
+    - id: capper
+      type: machine
+      label: "Capper"
+      position: { x: 52, y: 25 }
+      capacity: 1
+      properties: { cycle_time_mean: 4, mtbf_hours: 450 }
+
+    - id: pasteurize_queue
+      type: buffer
+      label: "Pasteurize Queue"
+      position: { x: 57, y: 25 }
+      capacity: 15
+
+    - id: pasteurizer
+      type: machine
+      label: "Pasteurizer"
+      position: { x: 63, y: 25 }
+      capacity: 1
+      properties: { cycle_time_mean: 45, mtbf_hours: 700 }
+
+    - id: label_queue
+      type: buffer
+      label: "Label Queue"
+      position: { x: 69, y: 25 }
+      capacity: 12
+
+    - id: labeler
+      type: machine
+      label: "Labeler"
+      position: { x: 75, y: 25 }
+      capacity: 1
+      properties: { cycle_time_mean: 5, mtbf_hours: 400 }
+
+    - id: coder_queue
+      type: buffer
+      label: "Coder Queue"
+      position: { x: 79, y: 25 }
+      capacity: 10
+
+    - id: date_coder
+      type: machine
+      label: "Date Coder"
+      position: { x: 83, y: 25 }
+      capacity: 1
+      properties: { cycle_time_mean: 2, mtbf_hours: 800 }
+
+    - id: pack_queue
+      type: buffer
+      label: "Pack Queue"
+      position: { x: 87, y: 25 }
+      capacity: 10
+
+    - id: case_packer
+      type: machine
+      label: "Case Packer"
+      position: { x: 91, y: 18 }
+      capacity: 1
+      properties: { cycle_time_mean: 10, mtbf_hours: 400 }
+
+    - id: palletizer
+      type: machine
+      label: "Palletizer"
+      position: { x: 91, y: 32 }
+      capacity: 1
+      properties: { cycle_time_mean: 6, mtbf_hours: 500 }
+
+    - id: shipping_dock
+      type: exit_point
+      label: "Shipping"
+      position: { x: 97, y: 25 }
+
+  paths:
+    - from: pallet_infeed
+      to: depal_queue
+      distance: 7
+    - from: depal_queue
+      to: depalletizer
+      distance: 7
+    - from: depalletizer
+      to: rinse_queue
+      distance: 6
+    - from: rinse_queue
+      to: rinser
+      distance: 6
+    - from: rinser
+      to: fill_queue
+      distance: 6
+    - from: fill_queue
+      to: filler
+      distance: 6
+    - from: filler
+      to: cap_queue
+      distance: 6
+    - from: cap_queue
+      to: capper
+      distance: 5
+    - from: capper
+      to: pasteurize_queue
+      distance: 5
+    - from: pasteurize_queue
+      to: pasteurizer
+      distance: 6
+    - from: pasteurizer
+      to: label_queue
+      distance: 6
+    - from: label_queue
+      to: labeler
+      distance: 6
+    - from: labeler
+      to: coder_queue
+      distance: 4
+    - from: coder_queue
+      to: date_coder
+      distance: 4
+    - from: date_coder
+      to: pack_queue
+      distance: 4
+    - from: pack_queue
+      to: case_packer
+      distance: 8
+    - from: case_packer
+      to: palletizer
+      distance: 14
+    - from: palletizer
+      to: shipping_dock
+      distance: 10
+
+state_graphs:
+  product_flow:
+    states:
+      waiting:
+        type: queued
+        description: "Bottle waiting in accumulation conveyor"
+        queue_discipline: FIFO
+
+      in_transit:
+        type: moving
+        description: "Bottle moving on conveyor between stations"
+        speed:
+          distribution: constant
+          params: { value: 2.5 }
+
+      depalletizing:
+        type: stationary
+        description: "Removing bottles from pallet layer onto single-file conveyor"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 3, std: 0.5 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: depalletizing_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: depalletizing_completed
+
+      rinsing:
+        type: stationary
+        description: "High-pressure filtered water rinse and air dry"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 5, std: 0.5 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: rinsing_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: rinsing_completed
+
+      filling:
+        type: stationary
+        description: "Volumetric filling with CO₂ counter-pressure and N₂ headspace purge"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 8, std: 1 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: filling_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: filling_completed
+
+      capping:
+        type: stationary
+        description: "Crown cap application and torque verification"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 4, std: 0.5 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: capping_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: capping_completed
+
+      pasteurizing:
+        type: stationary
+        description: "Tunnel pasteurizer — 72°C for 15 PU (pasteurization units)"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 45, std: 5 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: pasteurizing_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: pasteurizing_completed
+
+      labeling:
+        type: stationary
+        description: "Wrap-around label application with hot melt adhesive"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 5, std: 0.8 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: labeling_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: labeling_completed
+
+      date_coding:
+        type: stationary
+        description: "Inkjet date/lot code printing for traceability"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 2, std: 0.3 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: date_coding_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: date_coding_completed
+
+      case_packing:
+        type: stationary
+        description: "Loading 24 bottles into corrugated case and sealing"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 10, std: 1.5 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: case_packing_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: case_packing_completed
+
+      palletizing:
+        type: stationary
+        description: "Robotic palletizer stacking cases in 5-high pattern with slip sheets"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 6, std: 1 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: palletizing_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: palletizing_completed
+
+      done:
+        type: terminal
+        description: "Bottle packaged — pallet ready for warehouse"
+        on_enter:
+          - action: emit_event
+            event_type: bottle_completed
+          - action: destroy_entity
+
+    transitions:
+      - from: waiting
+        to: in_transit
+        condition:
+          type: resource_available
+          resource_type: machine
+        priority: 1
+
+      - from: in_transit
+        to: waiting
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: resource_busy
+              resource_type: machine
+        priority: 1
+
+      # Depalletizer (station_index == 0)
+      - from: in_transit
+        to: depalletizing
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 0
+        priority: 2
+
+      # Rinser (station_index == 1)
+      - from: in_transit
+        to: rinsing
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 1
+        priority: 2
+
+      # Filler (station_index == 2)
+      - from: in_transit
+        to: filling
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 2
+        priority: 2
+
+      # Capper (station_index == 3)
+      - from: in_transit
+        to: capping
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 3
+        priority: 2
+
+      # Pasteurizer (station_index == 4)
+      - from: in_transit
+        to: pasteurizing
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 4
+        priority: 2
+
+      # Labeler (station_index == 5)
+      - from: in_transit
+        to: labeling
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 5
+        priority: 2
+
+      # Date coder (station_index == 6)
+      - from: in_transit
+        to: date_coding
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 6
+        priority: 2
+
+      # Case packer (station_index == 7)
+      - from: in_transit
+        to: case_packing
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 7
+        priority: 2
+
+      # Palletizer (station_index == 8)
+      - from: in_transit
+        to: palletizing
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 8
+        priority: 2
+
+      # Exit (station_index > 8)
+      - from: in_transit
+        to: done
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: ">"
+              value: 8
+        priority: 2
+
+      # Processing → transit transitions
+      - from: depalletizing
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: rinsing
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: filling
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: capping
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: pasteurizing
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: labeling
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: date_coding
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: case_packing
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: palletizing
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+entity_types:
+  bottle:
+    state_graph: product_flow
+    initial_state: waiting
+    spawn_rule: schedule
+    properties:
+      product_type:
+        type: categorical
+        values: [lager_330ml, ipa_500ml, stout_500ml, pilsner_750ml]
+        weights: [0.4, 0.25, 0.2, 0.15]
+      station_index:
+        type: integer
+        initial: 0
+
+schedule:
+  type: poisson
+  rate_per_hour: 60
+  shifts:
+    - name: morning
+      start: "06:00"
+      end: "14:00"
+      rate_multiplier: 1.0
+    - name: afternoon
+      start: "14:00"
+      end: "22:00"
+      rate_multiplier: 0.95
+    - name: night
+      start: "22:00"
+      end: "06:00"
+      rate_multiplier: 0.6

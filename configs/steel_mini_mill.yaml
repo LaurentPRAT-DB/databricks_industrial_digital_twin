@@ -1,0 +1,446 @@
+simulation:
+  name: "Steel Mini-Mill (EAF)"
+  description: "Scrap Charging → EAF Melting → Ladle Refining → Continuous Casting → Rolling → Cut-to-Length"
+  duration_hours: 8
+  time_step_seconds: 1
+  seed: 200
+
+facility:
+  name: "Nucor-Style EAF Mini-Mill"
+  coordinate_system: cartesian_2d
+  bounds: { width: 100, height: 50, unit: meters }
+
+  locations:
+    - id: scrap_yard
+      type: spawn_point
+      label: "Scrap Yard"
+      position: { x: 5, y: 25 }
+
+    - id: charge_bucket_queue
+      type: buffer
+      label: "Charge Queue"
+      position: { x: 14, y: 25 }
+      capacity: 3
+
+    - id: eaf_1
+      type: machine
+      label: "EAF 1"
+      position: { x: 25, y: 15 }
+      capacity: 1
+      properties: { cycle_time_mean: 2400, mtbf_hours: 150 }
+
+    - id: eaf_2
+      type: machine
+      label: "EAF 2"
+      position: { x: 25, y: 35 }
+      capacity: 1
+      properties: { cycle_time_mean: 2400, mtbf_hours: 150 }
+
+    - id: ladle_queue
+      type: buffer
+      label: "Ladle Queue"
+      position: { x: 38, y: 25 }
+      capacity: 3
+
+    - id: ladle_furnace
+      type: machine
+      label: "Ladle Furnace"
+      position: { x: 50, y: 25 }
+      capacity: 1
+      properties: { cycle_time_mean: 900, mtbf_hours: 300 }
+
+    - id: caster_queue
+      type: buffer
+      label: "Caster Queue"
+      position: { x: 60, y: 25 }
+      capacity: 2
+
+    - id: continuous_caster
+      type: machine
+      label: "Caster"
+      position: { x: 70, y: 25 }
+      capacity: 1
+      properties: { cycle_time_mean: 600, mtbf_hours: 400 }
+
+    - id: rolling_queue
+      type: buffer
+      label: "Rolling Queue"
+      position: { x: 78, y: 25 }
+      capacity: 3
+
+    - id: rolling_mill
+      type: machine
+      label: "Rolling Mill"
+      position: { x: 86, y: 25 }
+      capacity: 1
+      properties: { cycle_time_mean: 300, mtbf_hours: 250 }
+
+    - id: cooling_bed
+      type: machine
+      label: "Cooling Bed"
+      position: { x: 92, y: 15 }
+      capacity: 1
+      properties: { cycle_time_mean: 180, mtbf_hours: 800 }
+
+    - id: cut_to_length
+      type: machine
+      label: "Shear"
+      position: { x: 92, y: 35 }
+      capacity: 1
+      properties: { cycle_time_mean: 60, mtbf_hours: 600 }
+
+    - id: finished_steel_out
+      type: exit_point
+      label: "Dispatch"
+      position: { x: 97, y: 25 }
+
+  paths:
+    - from: scrap_yard
+      to: charge_bucket_queue
+      distance: 9
+    - from: charge_bucket_queue
+      to: eaf_1
+      distance: 14
+    - from: charge_bucket_queue
+      to: eaf_2
+      distance: 14
+    - from: eaf_1
+      to: ladle_queue
+      distance: 16
+    - from: eaf_2
+      to: ladle_queue
+      distance: 16
+    - from: ladle_queue
+      to: ladle_furnace
+      distance: 12
+    - from: ladle_furnace
+      to: caster_queue
+      distance: 10
+    - from: caster_queue
+      to: continuous_caster
+      distance: 10
+    - from: continuous_caster
+      to: rolling_queue
+      distance: 8
+    - from: rolling_queue
+      to: rolling_mill
+      distance: 8
+    - from: rolling_mill
+      to: cooling_bed
+      distance: 12
+    - from: cooling_bed
+      to: cut_to_length
+      distance: 20
+    - from: cut_to_length
+      to: finished_steel_out
+      distance: 12
+
+state_graphs:
+  product_flow:
+    states:
+      waiting:
+        type: queued
+        description: "Heat waiting in queue for next processing stage"
+        queue_discipline: FIFO
+
+      in_transit:
+        type: moving
+        description: "Molten steel or billet being transferred between stations"
+        speed:
+          distribution: constant
+          params: { value: 1.0 }
+
+      eaf_melting:
+        type: stationary
+        description: "Electric Arc Furnace melting scrap at 1,650°C — 100-tonne batch, 40-min tap-to-tap"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 2400, std: 180 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: eaf_melting_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: eaf_melting_completed
+
+      ladle_refining:
+        type: stationary
+        description: "Ladle Metallurgy Furnace — degassing, desulfurization, alloy trimming at 1,600°C"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 900, std: 120 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: ladle_refining_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: ladle_refining_completed
+
+      continuous_casting:
+        type: stationary
+        description: "Continuous casting — solidifying liquid steel into billets at 1,500°C"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 600, std: 60 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: casting_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: casting_completed
+
+      hot_rolling:
+        type: stationary
+        description: "Hot rolling billet to finished profile at 1,100°C through multi-stand mill"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 300, std: 30 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: rolling_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: rolling_completed
+
+      cooling:
+        type: stationary
+        description: "Air cooling on cooling bed — temperature drops from 900°C to handling temperature"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 180, std: 20 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: cooling_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: cooling_completed
+
+      cutting:
+        type: stationary
+        description: "Cold shear cut-to-length per customer order specification"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 60, std: 10 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: cutting_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: cutting_completed
+
+      done:
+        type: terminal
+        description: "Finished steel product — ready for dispatch"
+        on_enter:
+          - action: emit_event
+            event_type: heat_completed
+          - action: destroy_entity
+
+    transitions:
+      - from: waiting
+        to: in_transit
+        condition:
+          type: resource_available
+          resource_type: machine
+        priority: 1
+
+      - from: in_transit
+        to: waiting
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: resource_busy
+              resource_type: machine
+        priority: 1
+
+      # EAF stage (2 parallel furnaces = station_index 0,1)
+      - from: in_transit
+        to: eaf_melting
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "<"
+              value: 2
+        priority: 2
+
+      # Ladle refining (station_index == 2)
+      - from: in_transit
+        to: ladle_refining
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 2
+        priority: 2
+
+      # Continuous caster (station_index == 3)
+      - from: in_transit
+        to: continuous_casting
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 3
+        priority: 2
+
+      # Rolling mill (station_index == 4)
+      - from: in_transit
+        to: hot_rolling
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 4
+        priority: 2
+
+      # Cooling bed (station_index == 5)
+      - from: in_transit
+        to: cooling
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 5
+        priority: 2
+
+      # Cut-to-length (station_index == 6)
+      - from: in_transit
+        to: cutting
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 6
+        priority: 2
+
+      # Exit (station_index > 6)
+      - from: in_transit
+        to: done
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: ">"
+              value: 6
+        priority: 2
+
+      # Processing → transit transitions
+      - from: eaf_melting
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: ladle_refining
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: continuous_casting
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: hot_rolling
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: cooling
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: cutting
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+entity_types:
+  heat:
+    state_graph: product_flow
+    initial_state: waiting
+    spawn_rule: schedule
+    properties:
+      product_type:
+        type: categorical
+        values: [rebar, structural_beam, wire_rod, flat_bar]
+        weights: [0.35, 0.25, 0.25, 0.15]
+      station_index:
+        type: integer
+        initial: 0
+
+schedule:
+  type: poisson
+  rate_per_hour: 1.5
+  shifts:
+    - name: day_shift
+      start: "06:00"
+      end: "18:00"
+      rate_multiplier: 1.0
+    - name: night_shift
+      start: "18:00"
+      end: "06:00"
+      rate_multiplier: 0.8

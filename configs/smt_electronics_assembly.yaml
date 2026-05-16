@@ -1,0 +1,525 @@
+simulation:
+  name: "SMT Electronics Assembly"
+  description: "Paste Print → Pick-and-Place → Reflow → AOI → ICT → Conformal Coat"
+  duration_hours: 8
+  time_step_seconds: 1
+  seed: 300
+
+facility:
+  name: "PCB Assembly — SMT Line 4"
+  coordinate_system: cartesian_2d
+  bounds: { width: 100, height: 50, unit: meters }
+
+  locations:
+    - id: pcb_loader
+      type: spawn_point
+      label: "PCB Loader"
+      position: { x: 3, y: 25 }
+
+    - id: print_queue
+      type: buffer
+      label: "Print Queue"
+      position: { x: 11, y: 25 }
+      capacity: 8
+
+    - id: paste_printer
+      type: machine
+      label: "Paste Printer"
+      position: { x: 19, y: 25 }
+      capacity: 1
+      properties: { cycle_time_mean: 15, mtbf_hours: 400 }
+
+    - id: spi_queue
+      type: buffer
+      label: "SPI Queue"
+      position: { x: 26, y: 25 }
+      capacity: 5
+
+    - id: spi_inspector
+      type: machine
+      label: "SPI"
+      position: { x: 33, y: 25 }
+      capacity: 1
+      properties: { cycle_time_mean: 8, mtbf_hours: 600 }
+
+    - id: pnp_queue
+      type: buffer
+      label: "PnP Queue"
+      position: { x: 39, y: 25 }
+      capacity: 6
+
+    - id: chip_shooter
+      type: machine
+      label: "Chip Shooter"
+      position: { x: 46, y: 18 }
+      capacity: 1
+      properties: { cycle_time_mean: 12, mtbf_hours: 350 }
+
+    - id: fine_placer
+      type: machine
+      label: "Fine Placer"
+      position: { x: 46, y: 32 }
+      capacity: 1
+      properties: { cycle_time_mean: 18, mtbf_hours: 350 }
+
+    - id: reflow_queue
+      type: buffer
+      label: "Reflow Queue"
+      position: { x: 54, y: 25 }
+      capacity: 4
+
+    - id: reflow_oven
+      type: machine
+      label: "Reflow Oven"
+      position: { x: 62, y: 25 }
+      capacity: 1
+      properties: { cycle_time_mean: 240, mtbf_hours: 800 }
+
+    - id: aoi_queue
+      type: buffer
+      label: "AOI Queue"
+      position: { x: 70, y: 25 }
+      capacity: 6
+
+    - id: aoi_inspector
+      type: machine
+      label: "AOI"
+      position: { x: 77, y: 25 }
+      capacity: 1
+      properties: { cycle_time_mean: 10, mtbf_hours: 500 }
+
+    - id: ict_queue
+      type: buffer
+      label: "ICT Queue"
+      position: { x: 83, y: 25 }
+      capacity: 5
+
+    - id: ict_tester
+      type: machine
+      label: "ICT Tester"
+      position: { x: 89, y: 25 }
+      capacity: 1
+      properties: { cycle_time_mean: 20, mtbf_hours: 450 }
+
+    - id: coat_queue
+      type: buffer
+      label: "Coat Queue"
+      position: { x: 93, y: 18 }
+      capacity: 4
+
+    - id: conformal_coater
+      type: machine
+      label: "Coater"
+      position: { x: 93, y: 32 }
+      capacity: 1
+      properties: { cycle_time_mean: 30, mtbf_hours: 500 }
+
+    - id: finished_pcb_out
+      type: exit_point
+      label: "Output"
+      position: { x: 97, y: 25 }
+
+  paths:
+    - from: pcb_loader
+      to: print_queue
+      distance: 8
+    - from: print_queue
+      to: paste_printer
+      distance: 8
+    - from: paste_printer
+      to: spi_queue
+      distance: 7
+    - from: spi_queue
+      to: spi_inspector
+      distance: 7
+    - from: spi_inspector
+      to: pnp_queue
+      distance: 6
+    - from: pnp_queue
+      to: chip_shooter
+      distance: 10
+    - from: pnp_queue
+      to: fine_placer
+      distance: 10
+    - from: chip_shooter
+      to: reflow_queue
+      distance: 11
+    - from: fine_placer
+      to: reflow_queue
+      distance: 11
+    - from: reflow_queue
+      to: reflow_oven
+      distance: 8
+    - from: reflow_oven
+      to: aoi_queue
+      distance: 8
+    - from: aoi_queue
+      to: aoi_inspector
+      distance: 7
+    - from: aoi_inspector
+      to: ict_queue
+      distance: 6
+    - from: ict_queue
+      to: ict_tester
+      distance: 6
+    - from: ict_tester
+      to: coat_queue
+      distance: 6
+    - from: coat_queue
+      to: conformal_coater
+      distance: 14
+    - from: conformal_coater
+      to: finished_pcb_out
+      distance: 10
+
+state_graphs:
+  product_flow:
+    states:
+      waiting:
+        type: queued
+        description: "Board waiting in buffer for next station"
+        queue_discipline: FIFO
+
+      in_transit:
+        type: moving
+        description: "Board on conveyor between stations"
+        speed:
+          distribution: constant
+          params: { value: 2.0 }
+
+      paste_printing:
+        type: stationary
+        description: "Solder paste stencil printing — depositing solder paste through laser-cut stencil"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 15, std: 2 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: paste_printing_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: paste_printing_completed
+
+      spi_inspection:
+        type: stationary
+        description: "3D solder paste inspection — checking volume, height, and alignment of paste deposits"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 8, std: 1 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: spi_inspection_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: spi_inspection_completed
+
+      pick_and_place:
+        type: stationary
+        description: "Component placement — chip shooter (passives) or fine placer (ICs, QFPs, BGAs)"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 15, std: 2 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: placement_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: placement_completed
+
+      reflow_soldering:
+        type: stationary
+        description: "5-zone convection reflow — preheat, soak, ramp, peak 260°C, cooling"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 240, std: 10 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: reflow_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: reflow_completed
+
+      aoi_inspection:
+        type: stationary
+        description: "Automated Optical Inspection — checking solder joints, component presence, polarity"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 10, std: 1.5 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: aoi_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: aoi_completed
+
+      ict_testing:
+        type: stationary
+        description: "In-Circuit Test — bed-of-nails fixture probing component values and shorts"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 20, std: 3 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: ict_testing_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: ict_testing_completed
+
+      conformal_coating:
+        type: stationary
+        description: "Selective conformal coating spray — acrylic protective layer for moisture/dust"
+        location_type: machine
+        duration:
+          distribution: normal
+          params: { mean: 30, std: 5 }
+        on_enter:
+          - action: acquire_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: coating_started
+        on_exit:
+          - action: release_resource
+            resource_type: machine
+          - action: emit_event
+            event_type: coating_completed
+
+      done:
+        type: terminal
+        description: "Board complete — packed for shipment"
+        on_enter:
+          - action: emit_event
+            event_type: board_completed
+          - action: destroy_entity
+
+    transitions:
+      - from: waiting
+        to: in_transit
+        condition:
+          type: resource_available
+          resource_type: machine
+        priority: 1
+
+      - from: in_transit
+        to: waiting
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: resource_busy
+              resource_type: machine
+        priority: 1
+
+      # Paste printer (station_index == 0)
+      - from: in_transit
+        to: paste_printing
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 0
+        priority: 2
+
+      # SPI inspector (station_index == 1)
+      - from: in_transit
+        to: spi_inspection
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 1
+        priority: 2
+
+      # Pick-and-place (2 parallel machines = station_index 2,3)
+      - from: in_transit
+        to: pick_and_place
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "<"
+              value: 4
+        priority: 2
+
+      # Reflow oven (station_index == 4)
+      - from: in_transit
+        to: reflow_soldering
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 4
+        priority: 2
+
+      # AOI inspector (station_index == 5)
+      - from: in_transit
+        to: aoi_inspection
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 5
+        priority: 2
+
+      # ICT tester (station_index == 6)
+      - from: in_transit
+        to: ict_testing
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 6
+        priority: 2
+
+      # Conformal coater (station_index == 7)
+      - from: in_transit
+        to: conformal_coating
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: "=="
+              value: 7
+        priority: 2
+
+      # Exit (station_index > 7)
+      - from: in_transit
+        to: done
+        condition:
+          type: and
+          conditions:
+            - type: arrived_at_destination
+            - type: property_threshold
+              property: station_index
+              operator: ">"
+              value: 7
+        priority: 2
+
+      # Processing → transit transitions
+      - from: paste_printing
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: spi_inspection
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: pick_and_place
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: reflow_soldering
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: aoi_inspection
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: ict_testing
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+      - from: conformal_coating
+        to: in_transit
+        condition:
+          type: duration_elapsed
+        priority: 1
+        next_location: { type: next_in_sequence }
+
+entity_types:
+  pcb_board:
+    state_graph: product_flow
+    initial_state: waiting
+    spawn_rule: schedule
+    properties:
+      product_type:
+        type: categorical
+        values: [single_sided, double_sided, multilayer, flex_rigid]
+        weights: [0.2, 0.4, 0.3, 0.1]
+      station_index:
+        type: integer
+        initial: 0
+
+schedule:
+  type: poisson
+  rate_per_hour: 80
+  shifts:
+    - name: morning
+      start: "06:00"
+      end: "14:00"
+      rate_multiplier: 1.0
+    - name: afternoon
+      start: "14:00"
+      end: "22:00"
+      rate_multiplier: 0.95
+    - name: night
+      start: "22:00"
+      end: "06:00"
+      rate_multiplier: 0.7
