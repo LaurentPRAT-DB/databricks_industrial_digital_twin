@@ -123,8 +123,93 @@ Machines have finite capacity. When busy, arriving entities queue in upstream bu
 |----------|-------------|--------------|----------|------|
 | **Smartphone Chassis Line** | `assembly_line_3station.yaml` | CNC Milling → Press-Fit Assembly → CMM Inspection | 4 machines (2 parallel CNC) | 20/hr |
 | **EV Battery Pack Assembly** | `ev_battery_pack.yaml` | Cell Stacking → Laser Welding → EOL Testing | 4 machines (2 parallel stackers) | 24/hr |
+| **Steel Mini-Mill (EAF)** | `steel_mini_mill.yaml` | Scrap Charging → EAF Melting → Ladle Refining → Continuous Casting → Rolling → Cut-to-Length | 8 stations | 4/hr |
+| **SMT Electronics Assembly** | `smt_electronics_assembly.yaml` | Solder Paste → Pick & Place → Reflow → AOI → Functional Test | 5 stations | 30/hr |
+| **Beverage Bottling Line** | `beverage_bottling_line.yaml` | Rinse → Fill → Cap → Label → Case Pack | 5 stations | 120/hr |
 
 Each scenario defines its own spatial layout, process durations, failure rates (MTBF), and shift schedules.
+
+---
+
+## What-If Scenarios
+
+The What-If system allows interactive exploration of equipment deviations — model aging machines, quality issues, or erratic behavior and instantly see the impact on throughput, utilization, and queue depths.
+
+### How It Works
+
+1. **Open the What-If Editor** via the header button
+2. **Name your scenario** (e.g., "CNC Aging", "Worst Case")
+3. **Adjust deviation sliders** per machine or apply presets (Nominal, Aging, Quality Issue, Erratic)
+4. **Save** the configuration for later reuse, or **Load** a previously saved one
+5. **Run Simulation** — the engine re-computes all frames with your deviations applied
+6. **Review** — the header shows an amber badge with the scenario name, and a read-only parameter summary panel displays the active deviations alongside the running simulation
+
+### Deviation Parameters
+
+Each machine can be configured with the following deviation parameters that modify its nominal behavior:
+
+| Parameter | Default | Range | Description |
+|-----------|---------|-------|-------------|
+| `cycle_time_factor` | 1.0 | 0.5–3.0 | Multiplier on base cycle time (1.3 = 30% slower) |
+| `cycle_time_variability` | 1.0 | 0.5–5.0 | Multiplier on cycle time standard deviation |
+| `failure_probability` | 0.0 | 0–0.2 | Probability of random breakdown after each processing cycle |
+| `failure_duration_mean` | 300s | 60–1800s | Mean repair time when a breakdown occurs |
+| `failure_duration_std` | 60s | — | Std deviation of repair time |
+| `degradation_rate` | 0.0 | 0–10 | Seconds added to cycle time per simulated hour (drift) |
+| `quality_defect_rate` | 0.0 | 0–0.3 | Probability of rework (entity re-processes instead of advancing) |
+
+### Configuration in YAML
+
+Deviations can be set as defaults in the scenario YAML under each machine's `deviations` block:
+
+```yaml
+locations:
+  - id: cnc_mill_1
+    type: machine
+    label: "CNC Mill 1"
+    position: { x: 30, y: 15 }
+    capacity: 1
+    properties:
+      cycle_time_mean: 120
+      cycle_time_std: 10
+      mtbf_hours: 500
+    deviations:
+      cycle_time_factor: 1.0
+      cycle_time_variability: 1.0
+      failure_probability: 0.0
+      failure_duration_mean: 300
+      failure_duration_std: 60
+      degradation_rate: 0.0
+      quality_defect_rate: 0.0
+```
+
+The YAML `deviations` block defines the **nominal baseline**. The What-If Editor overrides these values at runtime without modifying the config file.
+
+### Presets
+
+| Preset | Effect |
+|--------|--------|
+| **Nominal** | All deviations reset to defaults — perfect machine behavior |
+| **Aging** | 30% slower cycle time, +2s/hr degradation drift, 3% failure rate |
+| **Quality Issue** | 10% defect/rework rate |
+| **Erratic** | 3x variability in cycle time, 5% failure rate |
+
+### Save / Load
+
+What-if configurations are persisted as JSON files in `configs/whatif/{scenario_id}/`:
+
+```json
+{
+  "name": "CNC Aging",
+  "scenario_id": "assembly_line_3station",
+  "overrides": {
+    "cnc_mill_1": { "cycle_time_factor": 1.3, "degradation_rate": 2.0, "failure_probability": 0.03 }
+  },
+  "saved_at": "2026-05-16T21:49:45Z"
+}
+```
+
+Only non-default values are stored. The Load button in the editor lists all saved what-ifs for the current scenario. Future versions will persist to Lakebase for team-wide sharing and batch execution.
 
 ---
 
@@ -493,12 +578,13 @@ The scenario appears automatically in the dashboard's scenario picker.
 |--------|----------|-------------|
 | `GET` | `/api/scenarios` | List available scenario configs with active flag |
 | `POST` | `/api/scenarios/load` | Switch active scenario, re-computes all frames `{"id": "config_name"}` |
-| `GET` | `/api/simulation/frames` | Full pre-computed frame array (config, paths, locations, state descriptions, all frames) |
-| `GET` | `/api/config` | Current simulation name, description, facility |
+| `POST` | `/api/scenarios/simulate` | Run what-if simulation with overrides `{"id": "...", "name": "...", "overrides": {...}}` |
+| `GET` | `/api/scenarios/{id}/parameters` | Get machine locations with deviation parameters for a scenario |
+| `GET` | `/api/simulation/frames` | Full pre-computed frame array (config, paths, locations, state descriptions, all frames, whatif_name, whatif_overrides) |
+| `POST` | `/api/whatif/save` | Save a what-if configuration `{"scenario_id": "...", "name": "...", "overrides": {...}}` |
+| `GET` | `/api/whatif/list/{scenario_id}` | List saved what-if configs for a scenario |
+| `GET` | `/api/whatif/load/{scenario_id}/{filename}` | Load a saved what-if configuration |
 | `GET` | `/api/status` | Simulation runtime status, frame count, elapsed time |
-| `GET` | `/api/entities` | Snapshot of all active entities (last frame) |
-| `GET` | `/api/resources` | Current machine/buffer states (last frame) |
-| `GET` | `/api/metrics` | Real-time KPI metrics (last frame) |
 
 ### Frames Endpoint (Playback)
 
