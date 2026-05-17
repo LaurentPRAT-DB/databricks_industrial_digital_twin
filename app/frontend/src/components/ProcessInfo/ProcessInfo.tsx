@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react';
-import type { Resource, LocationMeta, StateDescription, Metrics } from '../../types/entity';
+import type { Resource, LocationMeta, StateDescription } from '../../types/entity';
 
 interface Props {
   resources: Resource[];
   locations: LocationMeta[];
   stateDescriptions: Record<string, StateDescription>;
-  metrics: Metrics;
 }
 
 function fmtDuration(p: { mean?: number; std?: number; value?: number }) {
@@ -14,7 +13,7 @@ function fmtDuration(p: { mean?: number; std?: number; value?: number }) {
   return null;
 }
 
-export default function ProcessInfo({ resources, locations, stateDescriptions, metrics }: Props) {
+export default function ProcessInfo({ resources, locations, stateDescriptions }: Props) {
   const [infoOpen, setInfoOpen] = useState(false);
 
   const machines = useMemo(
@@ -100,22 +99,6 @@ export default function ProcessInfo({ resources, locations, stateDescriptions, m
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Metrics */}
-        <div className="flex items-center gap-3 shrink-0 pl-3 border-l border-slate-700/50">
-          <div className="text-center leading-tight">
-            <div className="text-xs font-bold text-white font-mono">{metrics.throughput_per_hour}</div>
-            <div className="text-[8px] text-slate-500 uppercase">/hr</div>
-          </div>
-          <div className="text-center leading-tight">
-            <div className="text-xs font-bold text-white font-mono">{metrics.avg_utilization_pct}%</div>
-            <div className="text-[8px] text-slate-500 uppercase">util</div>
-          </div>
-          <div className="text-center leading-tight">
-            <div className="text-xs font-bold text-white font-mono">{metrics.wip_count}</div>
-            <div className="text-[8px] text-slate-500 uppercase">wip</div>
-          </div>
         </div>
       </div>
 

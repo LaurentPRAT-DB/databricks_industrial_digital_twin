@@ -124,7 +124,6 @@ function App() {
             resources={sim.resources}
             locations={sim.locations}
             stateDescriptions={sim.stateDescriptions}
-            metrics={sim.metrics}
           />
           <PlaybackBar
             isPlaying={sim.isPlaying}
