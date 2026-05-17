@@ -21,8 +21,6 @@ function App() {
 
   useEffect(() => {
     if (sim.isFinished && sim.scenarioId) {
-      setShowPanel(true);
-      setShowPlanBuilder(false);
       setPanelTab('report');
     }
   }, [sim.isFinished, sim.scenarioId]);
