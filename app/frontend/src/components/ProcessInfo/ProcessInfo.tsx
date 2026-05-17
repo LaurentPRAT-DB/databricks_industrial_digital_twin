@@ -59,8 +59,8 @@ export default function ProcessInfo({ resources, locations, stateDescriptions, o
   if (locations.length === 0) return null;
 
   return (
-    <div className="bg-slate-800 border-t border-slate-700 shrink-0">
-      <div className="flex items-center gap-1 px-4 py-2 flex-wrap min-w-0">
+    <div className="bg-slate-800 border-t border-slate-700 shrink-0 max-h-24 overflow-y-auto">
+      <div className="flex items-center gap-1 px-4 py-1.5 flex-wrap min-w-0">
         {steps.map((step, i) => (
           <div key={step.id} className="flex items-center gap-1">
             {i > 0 && <span className="text-slate-600 text-xs">→</span>}

@@ -37,7 +37,7 @@ export default function PlaybackBar({
   };
 
   return (
-    <div className="bg-slate-800 border-t border-slate-700 flex items-center h-9 px-4 gap-3 shrink-0">
+    <div className="bg-slate-900 border-t border-slate-600 flex items-center h-11 px-4 gap-3 shrink-0">
       {/* Play/Pause */}
       <button
         onClick={onTogglePlay}
