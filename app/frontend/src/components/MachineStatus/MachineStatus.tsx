@@ -3,9 +3,10 @@ import type { Resource, LocationMeta } from '../../types/entity';
 interface Props {
   resources: Resource[];
   locations: LocationMeta[];
+  onSelectMachine?: (id: string) => void;
 }
 
-export default function MachineStatus({ resources, locations }: Props) {
+export default function MachineStatus({ resources, locations, onSelectMachine }: Props) {
   const machines = resources.filter(r => r.type === 'machine');
   const labelMap = Object.fromEntries(locations.map(l => [l.id, l.label]));
 
@@ -18,7 +19,8 @@ export default function MachineStatus({ resources, locations }: Props) {
         {machines.map(m => (
           <div
             key={m.id}
-            className="p-2 rounded bg-slate-700/50 border border-slate-600"
+            onClick={() => onSelectMachine?.(m.id)}
+            className="p-2 rounded bg-slate-700/50 border border-slate-600 cursor-pointer hover:bg-slate-700 hover:border-slate-500 transition-colors"
           >
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1 mr-2">

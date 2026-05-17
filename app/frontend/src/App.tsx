@@ -1,11 +1,11 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useSimulationReplay } from './hooks/useSimulationReplay';
 import FloorPlan from './components/FloorPlan/FloorPlan';
 import FloorPlan3D from './components/FloorPlan/FloorPlan3D';
 import MachineStatus from './components/MachineStatus/MachineStatus';
+import MachineDetailPanel from './components/MachineDetailPanel/MachineDetailPanel';
 import ProductionBoard from './components/ProductionBoard/ProductionBoard';
 import EntityList from './components/EntityList/EntityList';
-import ScenarioPicker from './components/ScenarioPicker/ScenarioPicker';
 import ScenarioPanel from './components/ScenarioPanel/ScenarioPanel';
 import PlanBuilder from './components/PlanBuilder/PlanBuilder';
 import ProcessInfo from './components/ProcessInfo/ProcessInfo';
@@ -17,6 +17,7 @@ function App() {
   const [showPanel, setShowPanel] = useState(false);
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
   const [panelTab, setPanelTab] = useState<'whatifs' | 'report'>('whatifs');
+  const [selectedMachine, setSelectedMachine] = useState<string | null>(null);
 
   useEffect(() => {
     if (sim.isFinished && sim.scenarioId) {
@@ -25,12 +26,6 @@ function App() {
       setPanelTab('report');
     }
   }, [sim.isFinished, sim.scenarioId]);
-
-  const handleScenarioLoad = useCallback(async (scenarioId: string) => {
-    await sim.loadFrames();
-    setShowPlanBuilder(false);
-    setShowPanel(true);
-  }, [sim.loadFrames]);
 
   useEffect(() => {
     if (sim.simConfig.name) document.title = sim.simConfig.name;
@@ -99,23 +94,16 @@ function App() {
               3D
             </button>
           </div>
-          <ScenarioPicker
-            currentName={sim.simConfig.name}
-            onLoad={handleScenarioLoad}
-            onNewScenario={() => { setShowPlanBuilder(true); setShowPanel(false); }}
-          />
-          {sim.scenarioId && (
-            <button
-              onClick={() => { setShowPanel(!showPanel); if (!showPanel) { setShowPlanBuilder(false); setPanelTab('whatifs'); } }}
-              className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
-                showPanel
-                  ? 'bg-teal-600 border-teal-500 text-white'
-                  : 'bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600'
-              }`}
-            >
-              {showPanel ? 'Close Panel' : 'Scenario Panel'}
-            </button>
-          )}
+          <button
+            onClick={() => { setShowPanel(!showPanel); if (!showPanel) { setShowPlanBuilder(false); setSelectedMachine(null); setPanelTab('whatifs'); } }}
+            className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+              showPanel
+                ? 'bg-teal-600 border-teal-500 text-white'
+                : 'bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600'
+            }`}
+          >
+            Scenarios
+          </button>
         </div>
       </header>
 
@@ -134,6 +122,7 @@ function App() {
             resources={sim.resources}
             locations={sim.locations}
             stateDescriptions={sim.stateDescriptions}
+            onSelectMachine={(id) => { setSelectedMachine(id); setShowPanel(false); setShowPlanBuilder(false); }}
           />
           <PlaybackBar
             isPlaying={sim.isPlaying}
@@ -149,23 +138,32 @@ function App() {
           />
         </div>
 
-        {/* Right side: either ScenarioPanel or default sidebar */}
+        {/* Right side: PlanBuilder > ScenarioPanel > MachineDetail > default sidebar */}
         {showPlanBuilder ? (
           <PlanBuilder
             onGenerate={() => { sim.loadFrames(); setShowPlanBuilder(false); setShowPanel(true); }}
             onClose={() => setShowPlanBuilder(false)}
           />
-        ) : showPanel && sim.scenarioId ? (
+        ) : showPanel ? (
           <ScenarioPanel
             scenarioId={sim.scenarioId}
             scenarioName={sim.simConfig.name}
             initialTab={panelTab}
             onSimulate={() => { sim.loadFrames(); }}
+            onLoadScenario={async () => { await sim.loadFrames(); setShowPanel(false); }}
+            onNewScenario={() => { setShowPlanBuilder(true); setShowPanel(false); }}
             onClose={() => setShowPanel(false)}
+          />
+        ) : selectedMachine ? (
+          <MachineDetailPanel
+            machineId={selectedMachine}
+            resources={sim.resources}
+            locations={sim.locations}
+            onClose={() => setSelectedMachine(null)}
           />
         ) : (
           <div className="w-80 p-4 space-y-4 overflow-y-auto border-l border-slate-700">
-            <MachineStatus resources={sim.resources} locations={sim.locations} />
+            <MachineStatus resources={sim.resources} locations={sim.locations} onSelectMachine={(id) => { setSelectedMachine(id); setShowPanel(false); }} />
             <EntityList entities={sim.entities} locations={sim.locations} stateDescriptions={sim.stateDescriptions} />
           </div>
         )}
