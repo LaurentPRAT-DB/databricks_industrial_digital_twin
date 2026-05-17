@@ -54,7 +54,7 @@ function App() {
                 { label: 'Queue', value: `${sim.metrics.total_queue_depth}`, color: 'text-rose-400' },
                 { label: 'Elapsed', value: `${sim.metrics.elapsed_hours}h`, color: 'text-slate-300' },
               ].map(c => (
-                <div key={c.label} className="bg-slate-700/50 rounded px-2.5 py-1 text-center">
+                <div key={c.label} className="bg-slate-700/50 rounded px-2.5 py-1 text-center w-[72px]">
                   <div className={`text-sm font-bold ${c.color} font-mono leading-tight`}>{c.value}</div>
                   <div className="text-[9px] text-slate-400">{c.label}</div>
                 </div>
