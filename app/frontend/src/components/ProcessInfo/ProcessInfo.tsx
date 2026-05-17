@@ -44,8 +44,10 @@ export default function ProcessInfo({ resources, locations, stateDescriptions }:
         description: stateInfo?.description || loc.label,
         cycle_count: res?.cycle_count,
         busy_pct: res?.busy_pct,
+        idle_pct: res?.idle_pct,
         down_pct: res?.down_pct,
         failure_count: res?.failure_count,
+        total_downtime_s: res?.total_downtime_s,
       };
     });
   }, [machines, resources, stateDescriptions]);
@@ -141,20 +143,40 @@ export default function ProcessInfo({ resources, locations, stateDescriptions }:
               ✕
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+          <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
             {steps.map((step, i) => (
-              <div key={step.id} className="flex items-start gap-2 p-2 rounded bg-slate-800/60 border border-slate-700/50">
-                <span className="text-[10px] text-slate-500 font-mono mt-0.5">{i + 1}.</span>
-                <div className="min-w-0">
-                  <div className="text-[11px] font-semibold text-slate-200 capitalize">{step.label}</div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">{step.description}</div>
-                  {(step.duration || step.cycleTime) && (
-                    <div className="text-[10px] text-slate-500 mt-0.5 font-mono">
-                      Cycle: {step.duration || `${step.cycleTime}s`}
-                      {step.id === bottleneck && <span className="text-amber-400 ml-2">← bottleneck</span>}
-                    </div>
-                  )}
+              <div key={step.id} className="p-2 rounded bg-slate-800/60 border border-slate-700/50">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] text-slate-500 font-mono">{i + 1}.</span>
+                  <span className="text-[11px] font-semibold text-slate-200 capitalize">{step.label}</span>
+                  {step.id === bottleneck && <span className="text-[9px] text-amber-400 font-bold">BOTTLENECK</span>}
                 </div>
+                <div className="text-[10px] text-slate-400 mb-1.5">{step.description}</div>
+                {step.cycle_count !== undefined && (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1">
+                      <div className="flex-1 h-2 rounded-full bg-slate-600 overflow-hidden flex">
+                        <div className="h-full bg-blue-500" style={{ width: `${step.busy_pct || 0}%` }} />
+                        <div className="h-full bg-red-500" style={{ width: `${step.down_pct || 0}%` }} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-x-2 text-[9px] font-mono">
+                      <div><span className="text-blue-400">Busy</span> <span className="text-slate-300">{step.busy_pct ?? 0}%</span></div>
+                      <div><span className="text-slate-400">Idle</span> <span className="text-slate-300">{step.idle_pct ?? 0}%</span></div>
+                      <div><span className="text-red-400">Down</span> <span className="text-slate-300">{step.down_pct ?? 0}%</span></div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-x-2 text-[9px] font-mono">
+                      <div><span className="text-slate-500">Cycles</span> <span className="text-slate-300">{step.cycle_count}</span></div>
+                      <div><span className="text-slate-500">Failures</span> <span className={step.failure_count ? 'text-red-300' : 'text-slate-300'}>{step.failure_count ?? 0}</span></div>
+                      <div><span className="text-slate-500">Downtime</span> <span className="text-slate-300">{step.total_downtime_s != null ? `${Math.round(step.total_downtime_s)}s` : '0s'}</span></div>
+                    </div>
+                  </div>
+                )}
+                {step.cycle_count === undefined && (step.duration || step.cycleTime) && (
+                  <div className="text-[10px] text-slate-500 font-mono">
+                    Cycle: {step.duration || `${step.cycleTime}s`}
+                  </div>
+                )}
               </div>
             ))}
           </div>
