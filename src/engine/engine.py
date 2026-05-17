@@ -74,6 +74,7 @@ class SimulationEngine:
         self._completed_count: int = 0
         self._total_wait_time: float = 0.0
         self._total_cycle_time: float = 0.0
+        self._total_lead_time: float = 0.0
         self._snapshot_interval: float = 5.0
         self._last_snapshot_s: float = 0.0
 
@@ -239,6 +240,9 @@ class SimulationEngine:
         elif new_state_config.type == "terminal":
             entity.destroyed = True
             self._completed_count += 1
+            spawn_t = entity.properties.get("spawn_time")
+            if spawn_t is not None:
+                self._total_lead_time += self.elapsed_s - spawn_t
 
         # Record transition
         self.recorder.record_transition(
@@ -323,6 +327,12 @@ class SimulationEngine:
             entity.breakdown_remaining -= dt
             if entity.breakdown_remaining <= 0:
                 entity.breakdown_remaining = 0.0
+                loc = entity.current_location
+                if loc:
+                    r = self.resource_mgr.get(loc)
+                    if r and r.type == "machine" and r.current_breakdown_start > 0:
+                        r.total_downtime += self.elapsed_s - r.current_breakdown_start
+                        r.current_breakdown_start = 0.0
                 self.recorder.record_event(
                     self.sim_time, "breakdown_resolved",
                     description=f"{entity.id} at {entity.current_location}",
@@ -345,10 +355,18 @@ class SimulationEngine:
                 loc = entity.current_location
                 dev = self._get_deviation(loc) if loc else None
 
+                # Increment cycle count on the machine
+                r = self.resource_mgr.get(loc) if loc else None
+                if r and r.type == "machine":
+                    r.cycle_count += 1
+
                 # Failure injection: machine breaks down after processing
                 if dev and dev.failure_probability > 0 and random.random() < dev.failure_probability:
                     repair_time = max(10.0, random.gauss(dev.failure_duration_mean, dev.failure_duration_std))
                     entity.breakdown_remaining = repair_time
+                    if r and r.type == "machine":
+                        r.failure_count += 1
+                        r.current_breakdown_start = self.elapsed_s
                     self.recorder.record_event(
                         self.sim_time, "machine_breakdown",
                         description=f"{entity.id} at {loc}",
@@ -409,7 +427,7 @@ class SimulationEngine:
 
         return {
             "entities": [e.to_dict() for e in self.entities.values() if not e.destroyed],
-            "resources": [r.to_dict() for r in self.resource_mgr.resources.values()],
+            "resources": [r.to_dict(self.elapsed_s) for r in self.resource_mgr.resources.values()],
             "metrics": self.get_metrics(),
             "config": {
                 "name": self.config.name,
@@ -445,6 +463,25 @@ class SimulationEngine:
         buffers = [r for r in self.resource_mgr.resources.values() if r.type == "buffer"]
         total_queue = sum(len(r.queue) + r.occupancy for r in buffers)
 
+        # Average lead time
+        avg_lead_time = (self._total_lead_time / self._completed_count) if self._completed_count > 0 else 0.0
+
+        # Per-machine stats
+        machine_stats = {}
+        for r in machines:
+            busy = r.total_busy_time
+            if r.status == "busy":
+                busy += self.elapsed_s - r.last_busy_start
+            down = r.total_downtime
+            idle = max(0.0, self.elapsed_s - busy - down) if self.elapsed_s > 0 else 0.0
+            machine_stats[r.id] = {
+                "cycle_count": r.cycle_count,
+                "busy_pct": round(busy / self.elapsed_s * 100, 1) if self.elapsed_s > 0 else 0.0,
+                "idle_pct": round(idle / self.elapsed_s * 100, 1) if self.elapsed_s > 0 else 0.0,
+                "down_pct": round(down / self.elapsed_s * 100, 1) if self.elapsed_s > 0 else 0.0,
+                "failure_count": r.failure_count,
+            }
+
         return {
             "throughput_per_hour": round(throughput, 1),
             "wip_count": active,
@@ -452,6 +489,8 @@ class SimulationEngine:
             "avg_utilization_pct": round(avg_util, 1),
             "total_queue_depth": total_queue,
             "elapsed_hours": round(hours, 2),
+            "avg_lead_time_s": round(avg_lead_time, 1),
+            "machine_stats": machine_stats,
         }
 
     def run(self) -> SimulationRecorder:

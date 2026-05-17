@@ -18,23 +18,42 @@ export default function MachineStatus({ resources, locations }: Props) {
         {machines.map(m => (
           <div
             key={m.id}
-            className="flex items-center justify-between p-2 rounded bg-slate-700/50 border border-slate-600 h-[52px]"
+            className="p-2 rounded bg-slate-700/50 border border-slate-600"
           >
-            <div className="min-w-0 flex-1 mr-2">
-              <div className="text-sm font-medium text-white truncate">
-                {labelMap[m.id] || m.id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+            <div className="flex items-center justify-between">
+              <div className="min-w-0 flex-1 mr-2">
+                <div className="text-sm font-medium text-white truncate">
+                  {labelMap[m.id] || m.id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                </div>
+                <div className="text-xs text-blue-300 truncate h-4">
+                  {m.occupants.length > 0 ? m.occupants[0] : ' '}
+                </div>
               </div>
-              <div className="text-xs text-blue-300 truncate h-4">
-                {m.occupants.length > 0 ? m.occupants[0] : ' '}
-              </div>
+              <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded w-[82px] text-center ${
+                m.status === 'busy' ? 'bg-blue-600 text-white' :
+                m.status === 'maintenance' ? 'bg-red-600 text-white' :
+                'bg-green-600/60 text-green-200'
+              }`}>
+                {m.status.toUpperCase()}
+              </span>
             </div>
-            <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded w-[82px] text-center ${
-              m.status === 'busy' ? 'bg-blue-600 text-white' :
-              m.status === 'maintenance' ? 'bg-red-600 text-white' :
-              'bg-green-600/60 text-green-200'
-            }`}>
-              {m.status.toUpperCase()}
-            </span>
+            {m.cycle_count !== undefined && (
+              <div className="mt-1.5 flex items-center gap-3 text-[10px] text-slate-400">
+                <span className="font-mono">{m.cycle_count} cycles</span>
+                {m.busy_pct !== undefined && (
+                  <div className="flex-1 flex items-center gap-1">
+                    <div className="flex-1 h-1.5 rounded-full bg-slate-600 overflow-hidden flex">
+                      <div className="h-full bg-blue-500" style={{ width: `${m.busy_pct}%` }} />
+                      <div className="h-full bg-red-500" style={{ width: `${m.down_pct || 0}%` }} />
+                    </div>
+                    <span className="w-8 text-right">{m.busy_pct}%</span>
+                  </div>
+                )}
+                {(m.failure_count ?? 0) > 0 && (
+                  <span className="text-red-400">{m.failure_count} fail</span>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>

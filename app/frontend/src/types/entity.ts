@@ -19,6 +19,20 @@ export interface Resource {
   queue_depth: number;
   status: string;
   properties: Record<string, unknown>;
+  cycle_count?: number;
+  busy_pct?: number;
+  idle_pct?: number;
+  down_pct?: number;
+  failure_count?: number;
+  total_downtime_s?: number;
+}
+
+export interface MachineStats {
+  cycle_count: number;
+  busy_pct: number;
+  idle_pct: number;
+  down_pct: number;
+  failure_count: number;
 }
 
 export interface Metrics {
@@ -28,6 +42,8 @@ export interface Metrics {
   avg_utilization_pct: number;
   total_queue_depth: number;
   elapsed_hours: number;
+  avg_lead_time_s?: number;
+  machine_stats?: Record<string, MachineStats>;
 }
 
 export interface SimConfig {

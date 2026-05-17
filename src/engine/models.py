@@ -61,6 +61,10 @@ class ResourceState:
     properties: dict[str, Any] = field(default_factory=dict)
     total_busy_time: float = 0.0
     last_busy_start: float = 0.0
+    cycle_count: int = 0
+    total_downtime: float = 0.0
+    failure_count: int = 0
+    current_breakdown_start: float = 0.0
 
     @property
     def is_available(self) -> bool:
@@ -70,8 +74,8 @@ class ResourceState:
     def occupancy(self) -> int:
         return len(self.occupants)
 
-    def to_dict(self) -> dict[str, Any]:
-        return {
+    def to_dict(self, elapsed_s: float = 0.0) -> dict[str, Any]:
+        d: dict[str, Any] = {
             "id": self.id,
             "type": self.type,
             "x": round(self.position.x, 2),
@@ -82,6 +86,19 @@ class ResourceState:
             "status": self.status,
             "properties": self.properties,
         }
+        if self.type == "machine" and elapsed_s > 0:
+            busy = self.total_busy_time
+            if self.status == "busy":
+                busy += elapsed_s - self.last_busy_start
+            down = self.total_downtime
+            idle = max(0.0, elapsed_s - busy - down)
+            d["cycle_count"] = self.cycle_count
+            d["busy_pct"] = round(busy / elapsed_s * 100, 1)
+            d["idle_pct"] = round(idle / elapsed_s * 100, 1)
+            d["down_pct"] = round(down / elapsed_s * 100, 1)
+            d["failure_count"] = self.failure_count
+            d["total_downtime_s"] = round(down, 1)
+        return d
 
 
 @dataclass

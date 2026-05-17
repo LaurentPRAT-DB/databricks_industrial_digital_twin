@@ -75,7 +75,7 @@ class EntityScheduler:
         self._entity_counter += 1
         entity_id = f"{type_name}_{self._entity_counter:04d}"
 
-        properties: dict = {"station_index": 0}
+        properties: dict = {"station_index": 0, "spawn_time": spawn_time_s}
         for prop_name, prop_config in et_config.properties.items():
             if prop_config.initial is not None:
                 properties[prop_name] = prop_config.initial
