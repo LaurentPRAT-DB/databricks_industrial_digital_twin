@@ -492,6 +492,34 @@ async def check_report_exists(scenario_id: str, slug: str):
     return {"exists": filepath.exists()}
 
 
+@app.get("/api/reports/list/{scenario_id}")
+async def list_reports(scenario_id: str):
+    dest = REPORTS_DIR / scenario_id
+    if not dest.exists():
+        return {"items": []}
+    items = []
+    for f in sorted(dest.glob("*.json")):
+        try:
+            data = json.loads(f.read_text())
+            items.append({
+                "name": data.get("name", f.stem),
+                "filename": f.name,
+                "saved_at": data.get("saved_at"),
+                "run_count": data.get("report", {}).get("run_count", 0),
+            })
+        except Exception:
+            continue
+    return {"items": items}
+
+
+@app.get("/api/reports/load/{scenario_id}/{filename}")
+async def load_report(scenario_id: str, filename: str):
+    filepath = REPORTS_DIR / scenario_id / filename
+    if not filepath.exists():
+        return JSONResponse(status_code=404, content={"error": "Report not found"})
+    return json.loads(filepath.read_text())
+
+
 @app.post("/api/reports/save")
 async def save_report(req: SaveReportRequest):
     name = req.name.strip()

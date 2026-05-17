@@ -25,6 +25,13 @@ interface ReportData {
   elapsed_s: number;
 }
 
+interface SavedReport {
+  name: string;
+  filename: string;
+  saved_at: string | null;
+  run_count: number;
+}
+
 interface Props {
   scenarioId: string;
   scenarioName: string;
@@ -79,6 +86,11 @@ export default function ReportTab({ scenarioId, scenarioName, initialFilenames }
   const [saveFlash, setSaveFlash] = useState('');
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
 
+  // Dirty tracking & saved reports
+  const [dirty, setDirty] = useState(false);
+  const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
+  const [confirmLoad, setConfirmLoad] = useState<string | null>(null);
+
   const defaultSuffix = useMemo(() => {
     const now = new Date();
     const pad = (n: number) => n.toString().padStart(2, '0');
@@ -89,6 +101,16 @@ export default function ReportTab({ scenarioId, scenarioName, initialFilenames }
     const suffix = reportSuffix.trim() || defaultSuffix;
     return `${scenarioName} — ${suffix}`;
   };
+
+  const fetchSavedReports = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/reports/list/${scenarioId}`);
+      const data = await res.json();
+      setSavedReports(data.items || []);
+    } catch { /* ignore */ }
+  }, [scenarioId]);
+
+  useEffect(() => { fetchSavedReports(); }, [fetchSavedReports]);
 
   const runReport = useCallback(async (filenames?: string[]) => {
     setLoading(true);
@@ -102,6 +124,7 @@ export default function ReportTab({ scenarioId, scenarioName, initialFilenames }
       });
       const data: ReportData = await res.json();
       setReport(data);
+      setDirty(true);
     } catch (e) {
       console.error('Report failed', e);
     }
@@ -139,6 +162,8 @@ export default function ReportTab({ scenarioId, scenarioName, initialFilenames }
       }
       if (res.ok) {
         setSaveFlash('Saved!');
+        setDirty(false);
+        fetchSavedReports();
         setTimeout(() => setSaveFlash(''), 2000);
       } else {
         const err = await res.json();
@@ -151,21 +176,122 @@ export default function ReportTab({ scenarioId, scenarioName, initialFilenames }
       setTimeout(() => setSaveFlash(''), 3000);
     }
     setSaving(false);
-  }, [report, scenarioId, reportSuffix, scenarioName, defaultSuffix]);
+  }, [report, scenarioId, reportSuffix, scenarioName, defaultSuffix, fetchSavedReports]);
+
+  const doLoadReport = useCallback(async (filename: string) => {
+    setConfirmLoad(null);
+    setLoading(true);
+    setProgress('Loading saved report...');
+    try {
+      const res = await fetch(`/api/reports/load/${scenarioId}/${filename}`);
+      const data = await res.json();
+      if (data.report) {
+        setReport(data.report as ReportData);
+        setDirty(false);
+        const fullName: string = data.name || '';
+        const prefix = scenarioName + ' — ';
+        setReportSuffix(fullName.startsWith(prefix) ? fullName.slice(prefix.length) : '');
+      }
+    } catch (e) {
+      console.error('Failed to load report', e);
+    }
+    setLoading(false);
+    setProgress('');
+  }, [scenarioId, scenarioName]);
+
+  const handleLoadReport = useCallback((filename: string) => {
+    if (dirty) {
+      setConfirmLoad(filename);
+    } else {
+      doLoadReport(filename);
+    }
+  }, [dirty, doLoadReport]);
+
+  const saveAndLoad = useCallback(async () => {
+    if (!confirmLoad) return;
+    await saveReport(false);
+    if (!showOverwriteConfirm) {
+      doLoadReport(confirmLoad);
+    }
+  }, [confirmLoad, saveReport, showOverwriteConfirm, doLoadReport]);
+
+  const discardAndLoad = useCallback(() => {
+    if (!confirmLoad) return;
+    setDirty(false);
+    doLoadReport(confirmLoad);
+  }, [confirmLoad, doLoadReport]);
+
+  // Saved reports list component (reused in empty state and after results)
+  const savedReportsList = savedReports.length > 0 ? (
+    <div>
+      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">Saved Reports</h4>
+      <div className="space-y-1.5">
+        {savedReports.map(sr => (
+          <button
+            key={sr.filename}
+            onClick={() => handleLoadReport(sr.filename)}
+            className="w-full text-left px-3 py-2 rounded-lg border border-slate-600/50 bg-slate-700/30 hover:bg-slate-700/60 hover:border-purple-500/50 transition-colors group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-medium text-white group-hover:text-purple-300 truncate">
+                {sr.name}
+              </span>
+              <span className="text-[9px] text-slate-500 group-hover:text-purple-400 shrink-0 ml-2">
+                Load &rarr;
+              </span>
+            </div>
+            <div className="flex gap-3 text-[9px] text-slate-500 mt-0.5">
+              {sr.saved_at && <span>{new Date(sr.saved_at).toLocaleString()}</span>}
+              <span>{sr.run_count} runs</span>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  ) : null;
+
+  // Unsaved changes confirmation
+  const confirmLoadUI = confirmLoad && (
+    <div className="flex items-center gap-2 p-2 bg-amber-900/30 border border-amber-600/50 rounded text-[10px]">
+      <span className="text-amber-300 flex-1">Current report is unsaved. Save before loading?</span>
+      <button
+        onClick={saveAndLoad}
+        className="px-2 py-1 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded transition-colors"
+      >
+        Save & Load
+      </button>
+      <button
+        onClick={discardAndLoad}
+        className="px-2 py-1 bg-slate-600 hover:bg-slate-500 text-slate-200 font-bold rounded transition-colors"
+      >
+        Discard
+      </button>
+      <button
+        onClick={() => setConfirmLoad(null)}
+        className="px-2 py-1 bg-slate-600 hover:bg-slate-500 text-slate-200 font-bold rounded transition-colors"
+      >
+        Cancel
+      </button>
+    </div>
+  );
 
   return (
     <div className="flex-1 overflow-y-auto p-4">
       {!report && !loading && (
-        <div className="text-center py-8">
-          <p className="text-sm text-slate-400 mb-4">
-            Select what-ifs in the What-Ifs tab and click "Run Report", or run all below.
-          </p>
-          <button
-            onClick={() => runReport()}
-            className="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold rounded transition-colors uppercase tracking-wide"
-          >
-            Run All
-          </button>
+        <div className="space-y-6">
+          <div className="text-center py-8">
+            <p className="text-sm text-slate-400 mb-4">
+              Select what-ifs in the What-Ifs tab and click "Run Report", or run all below.
+            </p>
+            <button
+              onClick={() => runReport()}
+              className="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold rounded transition-colors uppercase tracking-wide"
+            >
+              Run All
+            </button>
+          </div>
+          {confirmLoadUI}
+          {savedReportsList}
         </div>
       )}
 
@@ -187,6 +313,7 @@ export default function ReportTab({ scenarioId, scenarioName, initialFilenames }
               <span>{report.run_count} runs</span>
               <span>{report.elapsed_s}s elapsed</span>
               <span>Baseline + {report.whatifs.length} what-if{report.whatifs.length !== 1 ? 's' : ''}</span>
+              {dirty && <span className="text-amber-400 font-bold">Unsaved</span>}
             </div>
           </div>
 
@@ -344,6 +471,12 @@ export default function ReportTab({ scenarioId, scenarioName, initialFilenames }
               </button>
             </div>
           </div>
+
+          {/* Unsaved changes confirmation */}
+          {confirmLoadUI}
+
+          {/* Saved Reports */}
+          {savedReportsList}
         </div>
       )}
     </div>
