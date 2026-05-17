@@ -34,7 +34,7 @@ export default function MachineStatus({ resources, locations }: Props) {
                 </span>
               )}
             </div>
-            <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded ${
+            <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded w-[82px] text-center ${
               m.status === 'busy' ? 'bg-blue-600 text-white' :
               m.status === 'maintenance' ? 'bg-red-600 text-white' :
               'bg-green-600/60 text-green-200'
