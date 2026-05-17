@@ -27,14 +27,14 @@ facility:
       label: "EAF 1"
       position: { x: 25, y: 15 }
       capacity: 1
-      properties: { cycle_time_mean: 2400, mtbf_hours: 150 }
+      properties: { cycle_time_mean: 2400, mtbf_hours: 150, model: machine_heavy }
 
     - id: eaf_2
       type: machine
       label: "EAF 2"
       position: { x: 25, y: 35 }
       capacity: 1
-      properties: { cycle_time_mean: 2400, mtbf_hours: 150 }
+      properties: { cycle_time_mean: 2400, mtbf_hours: 150, model: machine_heavy }
 
     - id: ladle_queue
       type: buffer
@@ -47,7 +47,7 @@ facility:
       label: "Ladle Furnace"
       position: { x: 50, y: 25 }
       capacity: 1
-      properties: { cycle_time_mean: 900, mtbf_hours: 300 }
+      properties: { cycle_time_mean: 900, mtbf_hours: 300, model: machine_window }
 
     - id: caster_queue
       type: buffer
@@ -73,7 +73,7 @@ facility:
       label: "Rolling Mill"
       position: { x: 86, y: 25 }
       capacity: 1
-      properties: { cycle_time_mean: 300, mtbf_hours: 250 }
+      properties: { cycle_time_mean: 300, mtbf_hours: 250, model: machine_heavy }
 
     - id: cooling_bed
       type: machine
@@ -87,7 +87,7 @@ facility:
       label: "Shear"
       position: { x: 92, y: 35 }
       capacity: 1
-      properties: { cycle_time_mean: 60, mtbf_hours: 600 }
+      properties: { cycle_time_mean: 60, mtbf_hours: 600, model: piston }
 
     - id: finished_steel_out
       type: exit_point

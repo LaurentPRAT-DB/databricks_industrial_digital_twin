@@ -1,8 +1,10 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Html, Line } from '@react-three/drei';
+import { OrbitControls, Html, Line, useGLTF } from '@react-three/drei';
 import type { Mesh } from 'three';
 import type { Entity, Resource, PathSegment, LocationMeta } from '../../types/entity';
+import { getEquipmentModel, preloadEquipmentModels } from '../../config/equipmentModels';
+import { GLTFEquipment } from './GLTFEquipment';
 
 interface Props {
   entities: Entity[];
@@ -36,27 +38,27 @@ function toWorld(x: number, y: number): [number, number, number] {
   return [x - 50, 0, -(y - 25)];
 }
 
-function LocationBox({ resource, label }: { resource: Resource; label: string }) {
+function LocationModel({ resource, label, locations }: { resource: Resource; label: string; locations: LocationMeta[] }) {
   const color = LOCATION_COLORS[resource.type] || '#4b5563';
   const isBusy = resource.status === 'busy';
-  const height = resource.type === 'machine' ? 3 : 1.5;
-  const width = resource.type === 'machine' ? 5 : 3;
-  const depth = resource.type === 'machine' ? 4 : 2.5;
   const [wx, , wz] = toWorld(resource.x, resource.y);
 
+  const locMeta = useMemo(
+    () => locations.find(l => l.id === resource.id),
+    [locations, resource.id],
+  );
+  const modelHint = locMeta?.model_3d;
+  const modelConfig = useMemo(
+    () => getEquipmentModel(resource.type, modelHint),
+    [resource.type, modelHint],
+  );
+
+  const yOffset = resource.type === 'machine' ? 1.5 : resource.type === 'buffer' ? 0.5 : 1.0;
+
   return (
-    <group position={[wx, height / 2, wz]}>
-      <mesh castShadow receiveShadow>
-        <boxGeometry args={[width, height, depth]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={isBusy ? color : '#000000'}
-          emissiveIntensity={isBusy ? 0.4 : 0}
-          transparent={!isBusy}
-          opacity={isBusy ? 1 : 0.6}
-        />
-      </mesh>
-      <Html position={[0, height / 2 + 1, 0]} center distanceFactor={80}>
+    <group position={[wx, yOffset, wz]}>
+      <GLTFEquipment modelConfig={modelConfig} color={color} isBusy={isBusy} />
+      <Html position={[0, 2.5, 0]} center distanceFactor={80}>
         <div className="text-[10px] font-semibold text-white bg-slate-900/80 px-1.5 py-0.5 rounded whitespace-nowrap pointer-events-none select-none">
           {label}
           {resource.type === 'buffer' && resource.queue_depth > 0 && (
@@ -126,13 +128,19 @@ function Scene({ entities, resources, paths, locations }: Props) {
     return Array.from(seen).filter(s => !FIXED_STATE_COLORS[s]);
   }, [entities]);
 
+  useEffect(() => {
+    const urls = preloadEquipmentModels();
+    urls.forEach(url => useGLTF.preload(url));
+  }, []);
+
   return (
     <>
-      <ambientLight intensity={0.4} />
-      <directionalLight position={[30, 40, 20]} intensity={0.8} castShadow />
+      <ambientLight intensity={0.6} />
+      <hemisphereLight args={[0x87ceeb, 0x334455, 0.3]} />
+      <directionalLight position={[30, 40, 20]} intensity={0.9} castShadow />
       <directionalLight position={[-20, 30, -10]} intensity={0.3} />
 
-      {/* Floor grid */}
+      {/* Floor */}
       <gridHelper args={[120, 60, '#1e293b', '#1e293b']} position={[0, 0, 0]} />
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
         <planeGeometry args={[120, 70]} />
@@ -144,12 +152,13 @@ function Scene({ entities, resources, paths, locations }: Props) {
         <ConveyorPath key={`path-${i}`} path={p} />
       ))}
 
-      {/* Location boxes */}
+      {/* Location models */}
       {resources.map((r) => (
-        <LocationBox
+        <LocationModel
           key={r.id}
           resource={r}
           label={labelMap.get(r.id) || r.id.replace(/_/g, ' ')}
+          locations={locations}
         />
       ))}
 

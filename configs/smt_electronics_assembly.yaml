@@ -27,7 +27,7 @@ facility:
       label: "Paste Printer"
       position: { x: 19, y: 25 }
       capacity: 1
-      properties: { cycle_time_mean: 15, mtbf_hours: 400 }
+      properties: { cycle_time_mean: 15, mtbf_hours: 400, model: machine_bed }
 
     - id: spi_queue
       type: buffer
@@ -40,7 +40,7 @@ facility:
       label: "SPI"
       position: { x: 33, y: 25 }
       capacity: 1
-      properties: { cycle_time_mean: 8, mtbf_hours: 600 }
+      properties: { cycle_time_mean: 8, mtbf_hours: 600, model: scanner }
 
     - id: pnp_queue
       type: buffer
@@ -53,14 +53,14 @@ facility:
       label: "Chip Shooter"
       position: { x: 46, y: 18 }
       capacity: 1
-      properties: { cycle_time_mean: 12, mtbf_hours: 350 }
+      properties: { cycle_time_mean: 12, mtbf_hours: 350, model: robot_arm }
 
     - id: fine_placer
       type: machine
       label: "Fine Placer"
       position: { x: 46, y: 32 }
       capacity: 1
-      properties: { cycle_time_mean: 18, mtbf_hours: 350 }
+      properties: { cycle_time_mean: 18, mtbf_hours: 350, model: robot_arm }
 
     - id: reflow_queue
       type: buffer
@@ -73,7 +73,7 @@ facility:
       label: "Reflow Oven"
       position: { x: 62, y: 25 }
       capacity: 1
-      properties: { cycle_time_mean: 240, mtbf_hours: 800 }
+      properties: { cycle_time_mean: 240, mtbf_hours: 800, model: machine_window }
 
     - id: aoi_queue
       type: buffer
@@ -86,7 +86,7 @@ facility:
       label: "AOI"
       position: { x: 77, y: 25 }
       capacity: 1
-      properties: { cycle_time_mean: 10, mtbf_hours: 500 }
+      properties: { cycle_time_mean: 10, mtbf_hours: 500, model: scanner }
 
     - id: ict_queue
       type: buffer
@@ -112,7 +112,7 @@ facility:
       label: "Coater"
       position: { x: 93, y: 32 }
       capacity: 1
-      properties: { cycle_time_mean: 30, mtbf_hours: 500 }
+      properties: { cycle_time_mean: 30, mtbf_hours: 500, model: robot_arm }
 
     - id: finished_pcb_out
       type: exit_point

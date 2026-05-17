@@ -391,7 +391,12 @@ class SimulationEngine:
                 "capacity": loc.capacity,
             }
             if loc.properties:
-                meta["properties"] = loc.properties
+                props = dict(loc.properties)
+                model_3d = props.pop("model", None)
+                if model_3d is not None:
+                    meta["model_3d"] = str(model_3d)
+                if props:
+                    meta["properties"] = props
             locations_meta.append(meta)
 
         state_descriptions = {}
