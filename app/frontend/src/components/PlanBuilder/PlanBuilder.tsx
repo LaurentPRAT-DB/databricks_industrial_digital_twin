@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { INDUSTRY_TEMPLATES, type IndustryTemplate, type TemplateStation } from './templates';
 import { parseProcessDescription } from './parseDescription';
-import { EQUIPMENT_MODELS } from '../../config/equipmentModels';
+import ModelPicker from './ModelPicker';
 
 interface Station {
   name: string;
@@ -14,8 +14,6 @@ interface Props {
   onGenerate: () => void;
   onClose: () => void;
 }
-
-const MODEL_OPTIONS = Object.keys(EQUIPMENT_MODELS);
 
 export default function PlanBuilder({ onGenerate, onClose }: Props) {
   const [name, setName] = useState('');
@@ -269,15 +267,10 @@ export default function PlanBuilder({ onGenerate, onClose }: Props) {
                   </div>
                   <div className="flex-1">
                     <label className="text-[10px] text-slate-500">Model</label>
-                    <select
+                    <ModelPicker
                       value={s.model_3d}
-                      onChange={e => updateStation(i, 'model_3d', e.target.value)}
-                      className="w-full px-1 py-0.5 bg-slate-800 border border-slate-600 rounded text-xs text-white focus:outline-none focus:border-blue-500"
-                    >
-                      {MODEL_OPTIONS.map(m => (
-                        <option key={m} value={m}>{m.replace(/_/g, ' ')}</option>
-                      ))}
-                    </select>
+                      onChange={v => updateStation(i, 'model_3d', v)}
+                    />
                   </div>
                 </div>
               </div>
