@@ -364,6 +364,107 @@ async def load_whatif(scenario_id: str, filename: str):
     return data
 
 
+def _run_simulation_metrics(scenario_id: str, overrides: dict[str, dict[str, float]] | None = None) -> dict[str, Any]:
+    """Run a simulation to completion and return only the final metrics. Does not touch global state."""
+    config_path = CONFIGS_DIR / f"{scenario_id}.yaml"
+    config = load_config(str(config_path))
+    engine = SimulationEngine(config)
+
+    if overrides:
+        dev_map = {loc_id: DeviationConfig(**params) for loc_id, params in overrides.items()}
+        engine.set_deviation_overrides(dev_map)
+
+    dt = config.time_step_seconds
+    while engine.sim_time < engine.end_time:
+        new_entities = engine.scheduler.spawn_due(engine.elapsed_s)
+        for entity in new_entities:
+            first_target = engine._location_sequence[0] if engine._location_sequence else None
+            if first_target:
+                entity.target_location = first_target
+                spawn_loc = next((l.id for l in engine.config.facility.locations if l.type == "spawn_point"), "")
+                entity.route = engine.spatial.compute_route(spawn_loc, first_target)
+                entity.route_progress = 0.0
+                entity.state = "in_transit"
+                entity.current_location = spawn_loc
+            engine.entities[entity.id] = entity
+
+        to_remove: list[str] = []
+        for entity in list(engine.entities.values()):
+            if entity.destroyed:
+                to_remove.append(entity.id)
+                continue
+            engine._update_entity(entity, dt)
+            if entity.destroyed:
+                to_remove.append(entity.id)
+        for eid in to_remove:
+            del engine.entities[eid]
+
+        engine.sim_time += timedelta(seconds=dt)
+        engine.elapsed_s += dt
+
+    state = engine.get_current_state()
+    return state["metrics"]
+
+
+def _auto_name(data: dict) -> str:
+    """Generate a name for an unnamed what-if from its overrides and saved_at."""
+    overrides = data.get("overrides", {})
+    if overrides:
+        machines = list(overrides.keys())[:2]
+        label = "+".join(m.replace("_", " ").title() for m in machines)
+        if len(overrides) > 2:
+            label += f" +{len(overrides) - 2} more"
+    else:
+        label = "No Deviations"
+    saved = data.get("saved_at", "")
+    if saved:
+        date_part = saved[:10]
+        label += f" ({date_part})"
+    return label
+
+
+@app.post("/api/scenarios/{scenario_id}/run-report")
+async def run_scenario_report(scenario_id: str):
+    config_path = CONFIGS_DIR / f"{scenario_id}.yaml"
+    if not config_path.exists():
+        return JSONResponse(status_code=404, content={"error": f"Scenario '{scenario_id}' not found"})
+
+    t0 = wall_time.time()
+    logger.info("Running report for scenario: %s", scenario_id)
+
+    baseline_metrics = _run_simulation_metrics(scenario_id)
+
+    whatif_results = []
+    whatif_dir = WHATIF_DIR / scenario_id
+    if whatif_dir.exists():
+        for f in sorted(whatif_dir.glob("*.json")):
+            try:
+                data = json.loads(f.read_text())
+                name = data.get("name", "").strip() or _auto_name(data)
+                overrides = data.get("overrides", {})
+                metrics = _run_simulation_metrics(scenario_id, overrides=overrides if overrides else None)
+                whatif_results.append({
+                    "name": name,
+                    "filename": f.name,
+                    "overrides": overrides,
+                    "metrics": metrics,
+                    "saved_at": data.get("saved_at"),
+                })
+            except Exception as e:
+                logger.warning("Failed to run what-if %s: %s", f.name, e)
+
+    elapsed = wall_time.time() - t0
+    logger.info("Report complete: baseline + %d what-ifs in %.1fs", len(whatif_results), elapsed)
+
+    return {
+        "scenario_id": scenario_id,
+        "baseline": {"name": "Baseline", "metrics": baseline_metrics},
+        "whatifs": whatif_results,
+        "run_count": 1 + len(whatif_results),
+        "elapsed_s": round(elapsed, 2),
+    }
+
+
 @app.get("/api/status")
 async def get_status():
     if not _simulation_frames:
