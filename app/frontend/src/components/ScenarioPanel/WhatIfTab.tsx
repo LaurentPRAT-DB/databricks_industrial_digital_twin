@@ -60,7 +60,7 @@ export default function WhatIfTab({ scenarioId, scenarioName, onSimulate, onRunR
   const [view, setView] = useState<View>('list');
   const [items, setItems] = useState<SavedWhatIf[]>([]);
   const [listLoading, setListLoading] = useState(true);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string> | null>(null);
 
   // Editor state
   const [locations, setLocations] = useState<LocationParameter[]>([]);
@@ -76,7 +76,9 @@ export default function WhatIfTab({ scenarioId, scenarioName, onSimulate, onRunR
     try {
       const res = await fetch(`/api/whatif/list/${scenarioId}`);
       const data = await res.json();
-      setItems(data.items || []);
+      const list: SavedWhatIf[] = data.items || [];
+      setItems(list);
+      setSelected(new Set(list.map(i => i.filename)));
     } catch { /* ignore */ }
     setListLoading(false);
   }, [scenarioId]);
@@ -124,7 +126,7 @@ export default function WhatIfTab({ scenarioId, scenarioName, onSimulate, onRunR
 
   const toggleSelection = useCallback((filename: string) => {
     setSelected(prev => {
-      const next = new Set(prev);
+      const next = new Set(prev || []);
       if (next.has(filename)) next.delete(filename);
       else next.add(filename);
       return next;
@@ -197,19 +199,22 @@ export default function WhatIfTab({ scenarioId, scenarioName, onSimulate, onRunR
     return (
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Actions bar */}
-        <div className="px-4 py-3 border-b border-slate-700/50 shrink-0 flex items-center gap-2">
-          <button
-            onClick={openNewWhatIf}
-            className="flex-1 py-2 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded transition-colors uppercase tracking-wide"
-          >
-            + New What-If
-          </button>
-          {selected.size > 0 && (
+        <div className="px-4 py-3 border-b border-slate-700/50 shrink-0 space-y-2">
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => onRunReport(Array.from(selected))}
-              className="flex-1 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded transition-colors uppercase tracking-wide"
+              onClick={openNewWhatIf}
+              className="flex-1 py-2 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded transition-colors uppercase tracking-wide"
             >
-              Run Report ({selected.size})
+              + New What-If
+            </button>
+          </div>
+          {items.length > 0 && (
+            <button
+              onClick={() => onRunReport(Array.from(selected || []))}
+              disabled={(selected?.size || 0) === 0}
+              className="w-full py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-slate-600 disabled:text-slate-400 text-white text-xs font-bold rounded transition-colors uppercase tracking-wide"
+            >
+              Run Report {(selected?.size || 0) > 0 ? `(${selected!.size} selected)` : ''}
             </button>
           )}
         </div>
@@ -233,14 +238,14 @@ export default function WhatIfTab({ scenarioId, scenarioName, onSimulate, onRunR
             <div
               key={item.filename}
               className={`flex items-center gap-2 p-3 rounded-lg border transition-colors ${
-                selected.has(item.filename)
+                selected?.has(item.filename)
                   ? 'border-purple-500/50 bg-purple-900/20'
                   : 'border-slate-600 bg-slate-750 hover:border-teal-500/50 hover:bg-slate-700/60'
               }`}
             >
               <input
                 type="checkbox"
-                checked={selected.has(item.filename)}
+                checked={selected?.has(item.filename) ?? false}
                 onChange={() => toggleSelection(item.filename)}
                 className="shrink-0 w-4 h-4 rounded border-slate-500 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 cursor-pointer"
               />

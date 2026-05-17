@@ -57,18 +57,20 @@ export default function ScenarioPanel({ scenarioId, scenarioName, onSimulate, on
         </div>
       </div>
 
-      {/* Tab content */}
-      {activeTab === 'whatifs' && (
-        <WhatIfTab
-          scenarioId={scenarioId}
-          scenarioName={scenarioName}
-          onSimulate={onSimulate}
-          onRunReport={handleRunReport}
-        />
-      )}
-      {activeTab === 'report' && (
-        <ReportTab scenarioId={scenarioId} initialFilenames={reportFilenames} />
-      )}
+      {/* Tab content — fixed container so switching tabs doesn't resize panel */}
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+        {activeTab === 'whatifs' && (
+          <WhatIfTab
+            scenarioId={scenarioId}
+            scenarioName={scenarioName}
+            onSimulate={onSimulate}
+            onRunReport={handleRunReport}
+          />
+        )}
+        {activeTab === 'report' && (
+          <ReportTab scenarioId={scenarioId} scenarioName={scenarioName} initialFilenames={reportFilenames} />
+        )}
+      </div>
     </div>
   );
 }

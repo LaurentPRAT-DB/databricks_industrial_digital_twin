@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 CONFIGS_DIR = Path(os.getenv("SIM_CONFIGS_DIR", "configs"))
 WHATIF_DIR = CONFIGS_DIR / "whatif"
+REPORTS_DIR = CONFIGS_DIR / "reports"
 DEFAULT_CONFIG = os.getenv("SIM_CONFIG", "assembly_line_3station")
 SNAPSHOT_INTERVAL_S = int(os.getenv("SIM_SNAPSHOT_INTERVAL", "5"))
 
@@ -473,6 +474,46 @@ async def run_scenario_report(scenario_id: str, req: RunReportRequest | None = N
         "run_count": 1 + len(whatif_results),
         "elapsed_s": round(elapsed, 2),
     }
+
+
+REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+class SaveReportRequest(BaseModel):
+    scenario_id: str
+    name: str
+    report: dict[str, Any]
+    overwrite: bool = False
+
+
+@app.get("/api/reports/check/{scenario_id}/{slug}")
+async def check_report_exists(scenario_id: str, slug: str):
+    filepath = REPORTS_DIR / scenario_id / f"{slug}.json"
+    return {"exists": filepath.exists()}
+
+
+@app.post("/api/reports/save")
+async def save_report(req: SaveReportRequest):
+    name = req.name.strip()
+    if not name:
+        return JSONResponse(status_code=400, content={"error": "Name is required"})
+    slug = _slugify(name)
+    if not slug:
+        return JSONResponse(status_code=400, content={"error": "Invalid name"})
+    dest = REPORTS_DIR / req.scenario_id
+    dest.mkdir(parents=True, exist_ok=True)
+    filepath = dest / f"{slug}.json"
+    if filepath.exists() and not req.overwrite:
+        return JSONResponse(status_code=409, content={"error": "Report already exists", "filename": f"{slug}.json"})
+    payload = {
+        "name": name,
+        "scenario_id": req.scenario_id,
+        "report": req.report,
+        "saved_at": datetime.now(timezone.utc).isoformat(),
+    }
+    filepath.write_text(json.dumps(payload, indent=2))
+    logger.info("Saved report: %s", filepath)
+    return {"status": "saved", "filename": f"{slug}.json"}
 
 
 @app.get("/api/status")
