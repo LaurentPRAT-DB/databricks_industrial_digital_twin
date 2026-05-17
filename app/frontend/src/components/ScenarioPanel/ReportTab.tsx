@@ -186,11 +186,11 @@ export default function ReportTab({ scenarioId, scenarioName, initialFilenames }
       const res = await fetch(`/api/reports/load/${scenarioId}/${filename}`);
       const data = await res.json();
       if (data.report) {
-        setReport(data.report as ReportData);
+        setReport({ ...data.report, scenario_id: scenarioId } as ReportData);
         setDirty(false);
         const fullName: string = data.name || '';
         const prefix = scenarioName + ' — ';
-        setReportSuffix(fullName.startsWith(prefix) ? fullName.slice(prefix.length) : '');
+        setReportSuffix(fullName.startsWith(prefix) ? fullName.slice(prefix.length) : fullName);
       }
     } catch (e) {
       console.error('Failed to load report', e);
@@ -302,7 +302,7 @@ export default function ReportTab({ scenarioId, scenarioName, initialFilenames }
         </div>
       )}
 
-      {report && (
+      {report && !loading && (
         <div className="space-y-4">
           {/* Report header */}
           <div className="bg-slate-700/40 rounded-lg p-3 border border-slate-600/50">
