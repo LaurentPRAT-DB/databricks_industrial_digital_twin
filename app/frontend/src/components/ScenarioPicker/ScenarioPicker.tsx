@@ -9,10 +9,11 @@ interface Scenario {
 
 interface Props {
   currentName: string;
-  onLoad?: () => void;
+  onLoad?: (scenarioId: string) => void;
+  onNewScenario?: () => void;
 }
 
-export default function ScenarioPicker({ currentName, onLoad }: Props) {
+export default function ScenarioPicker({ currentName, onLoad, onNewScenario }: Props) {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [loading, setLoading] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -44,7 +45,7 @@ export default function ScenarioPicker({ currentName, onLoad }: Props) {
         body: JSON.stringify({ id }),
       });
       setOpen(false);
-      onLoad?.();
+      onLoad?.(id);
     } catch (e) {
       console.error('Failed to load scenario', e);
     }
@@ -70,6 +71,15 @@ export default function ScenarioPicker({ currentName, onLoad }: Props) {
             </h3>
           </div>
           <div className="p-3 space-y-2 max-h-80 overflow-y-auto">
+            {onNewScenario && (
+              <button
+                onClick={() => { setOpen(false); onNewScenario(); }}
+                className="w-full p-3 rounded-lg border border-dashed border-emerald-600/50 hover:border-emerald-500 hover:bg-emerald-900/20 transition-colors text-left"
+              >
+                <span className="text-sm font-semibold text-emerald-400">+ New Scenario</span>
+                <p className="text-xs text-slate-400 mt-0.5">Create from scratch or template</p>
+              </button>
+            )}
             {scenarios.map(s => (
               <div
                 key={s.id}

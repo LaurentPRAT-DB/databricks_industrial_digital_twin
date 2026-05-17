@@ -3,6 +3,7 @@ import type { LocationParameter, DeviationParams } from '../../types/entity';
 
 interface Props {
   scenarioId: string;
+  initialWhatIf?: { name: string; overrides: Record<string, Record<string, number>> } | null;
   onSimulate: () => void;
   onClose: () => void;
 }
@@ -81,7 +82,13 @@ function buildNonDefaultOverrides(overrides: Record<string, DeviationParams>): R
   return ovr;
 }
 
-export default function ScenarioEditor({ scenarioId, onSimulate, onClose }: Props) {
+function generateDefaultName(): string {
+  const now = new Date();
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `What-If ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+}
+
+export default function ScenarioEditor({ scenarioId, initialWhatIf, onSimulate, onClose }: Props) {
   const [locations, setLocations] = useState<LocationParameter[]>([]);
   const [overrides, setOverrides] = useState<Record<string, DeviationParams>>({});
   const [scenarioName, setScenarioName] = useState('');
@@ -105,17 +112,27 @@ export default function ScenarioEditor({ scenarioId, onSimulate, onClose }: Prop
     fetch(`/api/scenarios/${scenarioId}/parameters`)
       .then(r => r.json())
       .then(data => {
-        setLocations(data.locations || []);
-        const init: Record<string, DeviationParams> = {};
-        for (const loc of data.locations || []) {
-          init[loc.id] = { ...DEFAULT_DEV, ...loc.deviations };
+        const locs: LocationParameter[] = data.locations || [];
+        setLocations(locs);
+        if (initialWhatIf) {
+          setScenarioName(initialWhatIf.name);
+          const init: Record<string, DeviationParams> = {};
+          for (const loc of locs) {
+            init[loc.id] = { ...DEFAULT_DEV, ...(initialWhatIf.overrides[loc.id] || {}) };
+          }
+          setOverrides(init);
+        } else {
+          const init: Record<string, DeviationParams> = {};
+          for (const loc of locs) {
+            init[loc.id] = { ...DEFAULT_DEV, ...loc.deviations };
+          }
+          setOverrides(init);
         }
-        setOverrides(init);
         setLoaded(true);
       })
       .catch(() => {});
     fetchSavedList();
-  }, [scenarioId, fetchSavedList]);
+  }, [scenarioId, initialWhatIf, fetchSavedList]);
 
   const updateParam = useCallback((locId: string, key: keyof DeviationParams, value: number) => {
     setOverrides(prev => ({
@@ -157,11 +174,13 @@ export default function ScenarioEditor({ scenarioId, onSimulate, onClose }: Prop
 
   const saveWhatIf = useCallback(async () => {
     const ovr = buildNonDefaultOverrides(overrides);
+    const name = scenarioName.trim() || generateDefaultName();
+    if (!scenarioName.trim()) setScenarioName(name);
     try {
       await fetch('/api/whatif/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenario_id: scenarioId, name: scenarioName, overrides: ovr }),
+        body: JSON.stringify({ scenario_id: scenarioId, name, overrides: ovr }),
       });
       setSaveFlash(true);
       setTimeout(() => setSaveFlash(false), 1500);
@@ -216,7 +235,7 @@ export default function ScenarioEditor({ scenarioId, onSimulate, onClose }: Prop
           type="text"
           value={scenarioName}
           onChange={e => setScenarioName(e.target.value)}
-          placeholder="Name this scenario..."
+          placeholder={generateDefaultName()}
           className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
         />
       </div>
@@ -311,13 +330,12 @@ export default function ScenarioEditor({ scenarioId, onSimulate, onClose }: Prop
         <div className="flex items-center gap-2">
           <button
             onClick={saveWhatIf}
-            disabled={!scenarioName.trim()}
             className={`flex-1 py-2 text-xs font-bold rounded transition-colors uppercase tracking-wide ${
               saveFlash
                 ? 'bg-green-600 text-white'
-                : 'bg-slate-700 hover:bg-slate-600 text-slate-300 disabled:opacity-40 disabled:hover:bg-slate-700'
+                : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
             }`}
-            title={scenarioName.trim() ? 'Save what-if config' : 'Enter a name first'}
+            title="Save what-if config"
           >
             {saveFlash ? 'Saved!' : 'Save'}
           </button>

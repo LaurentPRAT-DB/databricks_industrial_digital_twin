@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSimulationReplay } from './hooks/useSimulationReplay';
 import FloorPlan from './components/FloorPlan/FloorPlan';
 import FloorPlan3D from './components/FloorPlan/FloorPlan3D';
@@ -6,19 +6,22 @@ import MachineStatus from './components/MachineStatus/MachineStatus';
 import ProductionBoard from './components/ProductionBoard/ProductionBoard';
 import EntityList from './components/EntityList/EntityList';
 import ScenarioPicker from './components/ScenarioPicker/ScenarioPicker';
-import ScenarioEditor from './components/ScenarioEditor/ScenarioEditor';
-import WhatIfSummary from './components/ScenarioEditor/WhatIfSummary';
+import ScenarioPanel from './components/ScenarioPanel/ScenarioPanel';
 import PlanBuilder from './components/PlanBuilder/PlanBuilder';
-import ScenarioReport from './components/ScenarioReport/ScenarioReport';
 import ProcessInfo from './components/ProcessInfo/ProcessInfo';
 import PlaybackBar from './components/PlaybackBar/PlaybackBar';
 
 function App() {
   const sim = useSimulationReplay();
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
-  const [showEditor, setShowEditor] = useState(false);
+  const [showPanel, setShowPanel] = useState(false);
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
-  const [showReport, setShowReport] = useState(false);
+
+  const handleScenarioLoad = useCallback(async (scenarioId: string) => {
+    await sim.loadFrames();
+    setShowPlanBuilder(false);
+    setShowPanel(true);
+  }, [sim.loadFrames]);
 
   useEffect(() => {
     if (sim.simConfig.name) document.title = sim.simConfig.name;
@@ -87,37 +90,23 @@ function App() {
               3D
             </button>
           </div>
-          <button
-            onClick={() => { setShowPlanBuilder(!showPlanBuilder); if (!showPlanBuilder) setShowEditor(false); }}
-            className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
-              showPlanBuilder
-                ? 'bg-emerald-600 border-emerald-500 text-white'
-                : 'bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600'
-            }`}
-          >
-            + New
-          </button>
-          <button
-            onClick={() => { setShowEditor(!showEditor); if (!showEditor) { setShowPlanBuilder(false); setShowReport(false); } }}
-            className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
-              showEditor
-                ? 'bg-amber-600 border-amber-500 text-white'
-                : 'bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600'
-            }`}
-          >
-            What-If
-          </button>
-          <button
-            onClick={() => { setShowReport(!showReport); if (!showReport) { setShowEditor(false); setShowPlanBuilder(false); } }}
-            className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
-              showReport
-                ? 'bg-purple-600 border-purple-500 text-white'
-                : 'bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600'
-            }`}
-          >
-            Report
-          </button>
-          <ScenarioPicker currentName={sim.simConfig.name} onLoad={sim.loadFrames} />
+          <ScenarioPicker
+            currentName={sim.simConfig.name}
+            onLoad={handleScenarioLoad}
+            onNewScenario={() => { setShowPlanBuilder(true); setShowPanel(false); }}
+          />
+          {sim.scenarioId && (
+            <button
+              onClick={() => { setShowPanel(!showPanel); if (!showPanel) setShowPlanBuilder(false); }}
+              className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                showPanel
+                  ? 'bg-teal-600 border-teal-500 text-white'
+                  : 'bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600'
+              }`}
+            >
+              {showPanel ? 'Close Panel' : 'Scenario Panel'}
+            </button>
+          )}
         </div>
       </header>
 
@@ -151,44 +140,25 @@ function App() {
           />
         </div>
 
-        {/* Sidebar (right) */}
-        <div className="w-80 p-4 space-y-4 overflow-y-auto border-l border-slate-700">
-          <MachineStatus resources={sim.resources} locations={sim.locations} />
-          <EntityList entities={sim.entities} locations={sim.locations} stateDescriptions={sim.stateDescriptions} />
-        </div>
-
-        {/* Plan Builder panel */}
-        {showPlanBuilder && (
+        {/* Right side: either ScenarioPanel or default sidebar */}
+        {showPlanBuilder ? (
           <PlanBuilder
-            onGenerate={() => { sim.loadFrames(); setShowPlanBuilder(false); }}
+            onGenerate={() => { sim.loadFrames(); setShowPlanBuilder(false); setShowPanel(true); }}
             onClose={() => setShowPlanBuilder(false)}
           />
-        )}
-
-        {/* Report panel */}
-        {showReport && sim.scenarioId && (
-          <ScenarioReport
+        ) : showPanel && sim.scenarioId ? (
+          <ScenarioPanel
             scenarioId={sim.scenarioId}
             scenarioName={sim.simConfig.name}
-            onClose={() => setShowReport(false)}
+            onSimulate={() => { sim.loadFrames(); }}
+            onClose={() => setShowPanel(false)}
           />
+        ) : (
+          <div className="w-80 p-4 space-y-4 overflow-y-auto border-l border-slate-700">
+            <MachineStatus resources={sim.resources} locations={sim.locations} />
+            <EntityList entities={sim.entities} locations={sim.locations} stateDescriptions={sim.stateDescriptions} />
+          </div>
         )}
-
-        {/* What-If: summary when active, editor when editing */}
-        {!showPlanBuilder && !showReport && showEditor && sim.scenarioId ? (
-          <ScenarioEditor
-            scenarioId={sim.scenarioId}
-            onSimulate={() => { sim.loadFrames(); setShowEditor(false); }}
-            onClose={() => setShowEditor(false)}
-          />
-        ) : !showPlanBuilder && !showReport && sim.whatifName && sim.whatifOverrides ? (
-          <WhatIfSummary
-            whatifName={sim.whatifName}
-            overrides={sim.whatifOverrides}
-            locations={sim.locations}
-            onEdit={() => setShowEditor(true)}
-          />
-        ) : null}
       </div>
     </div>
   );

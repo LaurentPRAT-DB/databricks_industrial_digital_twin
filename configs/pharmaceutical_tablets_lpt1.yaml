@@ -1,0 +1,541 @@
+simulation:
+  name: Pharmaceutical Tablets - LPT1
+  description: "Feeding \u2192 Blending \u2192 Milling \u2192 Granulation \u2192 Press\
+    \ \u2192 Coating \u2192 QC"
+  duration_hours: 8.0
+  time_step_seconds: 1
+  seed: 486
+facility:
+  name: Pharmaceutical Tablets - LPT1
+  coordinate_system: cartesian_2d
+  bounds:
+    width: 100
+    height: 50
+    unit: meters
+  locations:
+  - id: tablet_batch_intake
+    type: spawn_point
+    label: Intake
+    position:
+      x: 5.0
+      y: 25.0
+  - id: powder_feeding_queue
+    type: buffer
+    label: Powder Feeding Queue
+    position:
+      x: 8.0
+      y: 25.0
+    capacity: 10
+  - id: powder_feeding
+    type: machine
+    label: Powder Feeding
+    position:
+      x: 12.0
+      y: 25.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 10.0
+      mtbf_hours: 400
+      model: hopper
+  - id: blending_queue
+    type: buffer
+    label: Blending Queue
+    position:
+      x: 20.7
+      y: 25.0
+    capacity: 10
+  - id: blending
+    type: machine
+    label: Blending
+    position:
+      x: 24.7
+      y: 25.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 30.0
+      mtbf_hours: 400
+      model: machine_window
+  - id: milling_queue
+    type: buffer
+    label: Milling Queue
+    position:
+      x: 33.3
+      y: 25.0
+    capacity: 10
+  - id: milling
+    type: machine
+    label: Milling
+    position:
+      x: 37.3
+      y: 25.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 20.0
+      mtbf_hours: 400
+      model: machine_heavy
+  - id: granulation_queue
+    type: buffer
+    label: Granulation Queue
+    position:
+      x: 46.0
+      y: 25.0
+    capacity: 10
+  - id: granulation
+    type: machine
+    label: Granulation
+    position:
+      x: 50.0
+      y: 25.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 45.0
+      mtbf_hours: 400
+      model: machine_window
+  - id: tablet_press_queue
+    type: buffer
+    label: Tablet Press Queue
+    position:
+      x: 58.7
+      y: 25.0
+    capacity: 10
+  - id: tablet_press
+    type: machine
+    label: Tablet Press
+    position:
+      x: 62.7
+      y: 25.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 8.0
+      mtbf_hours: 400
+      model: piston
+  - id: coating_queue
+    type: buffer
+    label: Coating Queue
+    position:
+      x: 71.3
+      y: 25.0
+    capacity: 10
+  - id: coating
+    type: machine
+    label: Coating
+    position:
+      x: 75.3
+      y: 25.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 60.0
+      mtbf_hours: 400
+      model: robot_arm
+  - id: qc_inspection_queue
+    type: buffer
+    label: QC Inspection Queue
+    position:
+      x: 84.0
+      y: 25.0
+    capacity: 10
+  - id: qc_inspection
+    type: machine
+    label: QC Inspection
+    position:
+      x: 88.0
+      y: 25.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 15.0
+      mtbf_hours: 400
+      model: scanner
+  - id: finished_tablet_batch_out
+    type: exit_point
+    label: Output
+    position:
+      x: 95.0
+      y: 25.0
+  paths:
+  - from: tablet_batch_intake
+    to: powder_feeding_queue
+    distance: 3.0
+  - from: powder_feeding_queue
+    to: powder_feeding
+    distance: 4.0
+  - from: powder_feeding
+    to: blending_queue
+    distance: 8.7
+  - from: blending_queue
+    to: blending
+    distance: 4.0
+  - from: blending
+    to: milling_queue
+    distance: 8.6
+  - from: milling_queue
+    to: milling
+    distance: 4.0
+  - from: milling
+    to: granulation_queue
+    distance: 8.7
+  - from: granulation_queue
+    to: granulation
+    distance: 4.0
+  - from: granulation
+    to: tablet_press_queue
+    distance: 8.7
+  - from: tablet_press_queue
+    to: tablet_press
+    distance: 4.0
+  - from: tablet_press
+    to: coating_queue
+    distance: 8.6
+  - from: coating_queue
+    to: coating
+    distance: 4.0
+  - from: coating
+    to: qc_inspection_queue
+    distance: 8.7
+  - from: qc_inspection_queue
+    to: qc_inspection
+    distance: 4.0
+  - from: qc_inspection
+    to: finished_tablet_batch_out
+    distance: 7.0
+state_graphs:
+  product_flow:
+    states:
+      waiting:
+        type: queued
+        description: Tablet Batch waiting in buffer
+        queue_discipline: FIFO
+      in_transit:
+        type: moving
+        description: Moving between stations on conveyor
+        speed:
+          distribution: constant
+          params:
+            value: 2.0
+      powder_feeding:
+        type: stationary
+        description: Powder Feeding
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 10.0
+            std: 1.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: powder_feeding_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: powder_feeding_completed
+      blending:
+        type: stationary
+        description: Blending
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 30.0
+            std: 3.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: blending_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: blending_completed
+      milling:
+        type: stationary
+        description: Milling
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 20.0
+            std: 2.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: milling_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: milling_completed
+      granulation:
+        type: stationary
+        description: Granulation
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 45.0
+            std: 5.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: granulation_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: granulation_completed
+      tablet_press:
+        type: stationary
+        description: Tablet Press
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 8.0
+            std: 1.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: tablet_press_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: tablet_press_completed
+      coating:
+        type: stationary
+        description: Coating
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 60.0
+            std: 8.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: coating_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: coating_completed
+      qc_inspection:
+        type: stationary
+        description: QC Inspection
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 15.0
+            std: 2.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: qc_inspection_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: qc_inspection_completed
+      done:
+        type: terminal
+        description: Tablet Batch complete
+        on_enter:
+        - action: emit_event
+          event_type: tablet_batch_completed
+        - action: destroy_entity
+    transitions:
+    - from: waiting
+      to: in_transit
+      condition:
+        type: resource_available
+        resource_type: machine
+      priority: 1
+    - from: in_transit
+      to: waiting
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: resource_busy
+          resource_type: machine
+      priority: 1
+    - from: in_transit
+      to: powder_feeding
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 0
+      priority: 2
+    - from: in_transit
+      to: blending
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 1
+      priority: 2
+    - from: in_transit
+      to: milling
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 2
+      priority: 2
+    - from: in_transit
+      to: granulation
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 3
+      priority: 2
+    - from: in_transit
+      to: tablet_press
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 4
+      priority: 2
+    - from: in_transit
+      to: coating
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 5
+      priority: 2
+    - from: in_transit
+      to: qc_inspection
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 6
+      priority: 2
+    - from: in_transit
+      to: done
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: '>'
+          value: 6
+      priority: 2
+    - from: powder_feeding
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: blending
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: milling
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: granulation
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: tablet_press
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: coating
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: qc_inspection
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+entity_types:
+  tablet_batch:
+    state_graph: product_flow
+    initial_state: waiting
+    spawn_rule: schedule
+    properties:
+      station_index:
+        type: integer
+        initial: 0
+      product_type:
+        type: categorical
+        values:
+        - analgesic
+        - antibiotic
+        - vitamin
+        weights:
+        - 0.33
+        - 0.33
+        - 0.33
+schedule:
+  type: poisson
+  rate_per_hour: 200.0
+  shifts:
+  - name: morning
+    start: 06:00
+    end: '14:00'
+    rate_multiplier: 1.0
+  - name: afternoon
+    start: '14:00'
+    end: '22:00'
+    rate_multiplier: 0.9
+  - name: night
+    start: '22:00'
+    end: 06:00
+    rate_multiplier: 0.5

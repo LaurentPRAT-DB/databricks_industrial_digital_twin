@@ -188,11 +188,14 @@ async def load_scenario(req: LoadScenarioRequest):
     if not config_path.exists():
         return JSONResponse(status_code=404, content={"error": f"Scenario '{req.id}' not found"})
     _precompute_simulation(req.id)
+    whatif_dir = WHATIF_DIR / req.id
+    whatif_count = len(list(whatif_dir.glob("*.json"))) if whatif_dir.exists() else 0
     return {
         "status": "loaded",
         "id": req.id,
         "name": _static_config.get("config", {}).get("name", ""),
         "frame_count": len(_simulation_frames),
+        "whatif_count": whatif_count,
     }
 
 
@@ -423,14 +426,19 @@ def _auto_name(data: dict) -> str:
     return label
 
 
+class RunReportRequest(BaseModel):
+    filenames: list[str] | None = None
+
+
 @app.post("/api/scenarios/{scenario_id}/run-report")
-async def run_scenario_report(scenario_id: str):
+async def run_scenario_report(scenario_id: str, req: RunReportRequest | None = None):
     config_path = CONFIGS_DIR / f"{scenario_id}.yaml"
     if not config_path.exists():
         return JSONResponse(status_code=404, content={"error": f"Scenario '{scenario_id}' not found"})
 
     t0 = wall_time.time()
-    logger.info("Running report for scenario: %s", scenario_id)
+    selected = req.filenames if req and req.filenames else None
+    logger.info("Running report for scenario: %s (selected: %s)", scenario_id, selected or "all")
 
     baseline_metrics = _run_simulation_metrics(scenario_id)
 
@@ -438,6 +446,8 @@ async def run_scenario_report(scenario_id: str):
     whatif_dir = WHATIF_DIR / scenario_id
     if whatif_dir.exists():
         for f in sorted(whatif_dir.glob("*.json")):
+            if selected and f.name not in selected:
+                continue
             try:
                 data = json.loads(f.read_text())
                 name = data.get("name", "").strip() or _auto_name(data)

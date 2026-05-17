@@ -1,0 +1,12 @@
+{
+  "name": "EV Battery Pack Assembly - Whai-if-2",
+  "scenario_id": "ev_battery_pack",
+  "overrides": {
+    "eol_tester": {
+      "cycle_time_variability": 3.0,
+      "failure_probability": 0.05,
+      "quality_defect_rate": 0.1
+    }
+  },
+  "saved_at": "2026-05-17T13:46:30.558564+00:00"
+}
