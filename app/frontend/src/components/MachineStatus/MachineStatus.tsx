@@ -18,21 +18,15 @@ export default function MachineStatus({ resources, locations }: Props) {
         {machines.map(m => (
           <div
             key={m.id}
-            className={`flex items-center justify-between p-2 rounded ${
-              m.status === 'busy' ? 'bg-blue-900/40 border border-blue-700' :
-              m.status === 'maintenance' ? 'bg-red-900/40 border border-red-700' :
-              'bg-slate-700/50 border border-slate-600'
-            }`}
+            className="flex items-center justify-between p-2 rounded bg-slate-700/50 border border-slate-600 h-[52px]"
           >
             <div className="min-w-0 flex-1 mr-2">
-              <span className="text-sm font-medium text-white">
+              <div className="text-sm font-medium text-white truncate">
                 {labelMap[m.id] || m.id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-              </span>
-              {m.occupants.length > 0 && (
-                <span className="ml-2 text-xs text-blue-300 truncate">
-                  {m.occupants[0]}
-                </span>
-              )}
+              </div>
+              <div className="text-xs text-blue-300 truncate h-4">
+                {m.occupants.length > 0 ? m.occupants[0] : ' '}
+              </div>
             </div>
             <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded w-[82px] text-center ${
               m.status === 'busy' ? 'bg-blue-600 text-white' :
