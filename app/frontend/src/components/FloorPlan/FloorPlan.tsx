@@ -111,20 +111,25 @@ export default function FloorPlan({ entities, resources, paths, locations }: Pro
               stroke={color}
               strokeWidth={isBusy ? 2 : 1.2}
             />
-            {/* Label — only for machines, spawn, exit (skip buffers to avoid overlap) */}
-            {showLabel && (
-              <text
-                x={cx}
-                y={isAboveCenter ? cy - size - 6 : cy + size + 12}
-                textAnchor="middle"
-                fontSize="8"
-                fontWeight="500"
-                fill="#e2e8f0"
-                letterSpacing="0.2"
-              >
-                {label}
-              </text>
-            )}
+            {/* Label — angled to avoid overlap; top row angles up, bottom row angles down */}
+            {showLabel && (() => {
+              const ly = isAboveCenter ? cy - size - 5 : cy + size + 10;
+              const angle = isAboveCenter ? -35 : 35;
+              return (
+                <text
+                  x={cx}
+                  y={ly}
+                  textAnchor="start"
+                  fontSize="7.5"
+                  fontWeight="500"
+                  fill="#e2e8f0"
+                  letterSpacing="0.2"
+                  transform={`rotate(${angle}, ${cx}, ${ly})`}
+                >
+                  {label}
+                </text>
+              );
+            })()}
             {/* Machine icon */}
             {r.type === 'machine' && (
               <text

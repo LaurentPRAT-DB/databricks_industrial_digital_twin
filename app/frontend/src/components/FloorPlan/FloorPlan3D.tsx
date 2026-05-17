@@ -55,20 +55,29 @@ function LocationModel({ resource, label, locations }: { resource: Resource; lab
 
   const yOffset = resource.type === 'machine' ? 1.5 : resource.type === 'buffer' ? 0.5 : 1.0;
 
+  const showLabel = resource.type === 'machine' || resource.type === 'spawn_point' || resource.type === 'exit_point';
+  const showBufferCount = resource.type === 'buffer' && resource.queue_depth > 0;
+
   return (
     <group position={[wx, yOffset, wz]}>
       <GLTFEquipment modelConfig={modelConfig} color={color} isBusy={isBusy} />
-      <Html position={[0, 2.5, 0]} center distanceFactor={80}>
-        <div className="text-[10px] font-semibold text-white bg-slate-900/80 px-1.5 py-0.5 rounded whitespace-nowrap pointer-events-none select-none">
-          {label}
-          {resource.type === 'buffer' && resource.queue_depth > 0 && (
-            <span className="ml-1 text-yellow-400">{resource.queue_depth}</span>
-          )}
-          {resource.type === 'machine' && isBusy && (
-            <span className="ml-1 text-blue-400">&#9881;</span>
-          )}
-        </div>
-      </Html>
+      {showLabel && (
+        <Html position={[0, 3.2, 0]} center distanceFactor={60} zIndexRange={[10, 0]}>
+          <div className="text-[9px] font-bold text-white bg-slate-900/90 border border-slate-600/50 px-1.5 py-0.5 rounded whitespace-nowrap pointer-events-none select-none shadow-lg backdrop-blur-sm">
+            {label}
+            {resource.type === 'machine' && isBusy && (
+              <span className="ml-1 text-blue-400">&#9881;</span>
+            )}
+          </div>
+        </Html>
+      )}
+      {showBufferCount && (
+        <Html position={[0, 1.5, 0]} center distanceFactor={40} zIndexRange={[5, 0]}>
+          <div className="text-[8px] font-bold text-yellow-400 bg-slate-900/90 px-1 py-0.5 rounded-full pointer-events-none select-none">
+            {resource.queue_depth}
+          </div>
+        </Html>
+      )}
     </group>
   );
 }

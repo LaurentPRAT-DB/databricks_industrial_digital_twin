@@ -59,11 +59,11 @@ export default function ProcessInfo({ resources, locations, stateDescriptions, m
 
   return (
     <div className="bg-slate-800 border-t border-slate-700 shrink-0 relative">
-      <div className="flex items-center h-10 px-4">
+      <div className="flex items-start gap-3 px-4 py-2">
         {/* Flow info button */}
         <button
           onClick={() => setInfoOpen(!infoOpen)}
-          className={`shrink-0 mr-3 w-5 h-5 flex items-center justify-center rounded-full border text-[9px] font-bold transition-colors ${
+          className={`shrink-0 mt-1 w-5 h-5 flex items-center justify-center rounded-full border text-[9px] font-bold transition-colors ${
             infoOpen
               ? 'bg-blue-600 border-blue-500 text-white'
               : 'border-slate-600 text-slate-400 hover:border-blue-500 hover:text-blue-400'
@@ -73,10 +73,10 @@ export default function ProcessInfo({ resources, locations, stateDescriptions, m
           i
         </button>
 
-        {/* Station flow chips */}
-        <div className="flex items-center gap-1 overflow-x-auto min-w-0 flex-1 py-1">
+        {/* Station flow chips — wraps to multiple lines */}
+        <div className="flex items-center flex-wrap gap-1 min-w-0 flex-1">
           {steps.map((step, i) => (
-            <div key={step.id} className="flex items-center gap-1 shrink-0">
+            <div key={step.id} className="flex items-center gap-1">
               {i > 0 && <span className="text-slate-600 text-xs">→</span>}
               <div
                 className={`flex items-center gap-1.5 px-2 py-1 rounded border text-[10px] font-medium transition-colors ${
@@ -103,7 +103,7 @@ export default function ProcessInfo({ resources, locations, stateDescriptions, m
         </div>
 
         {/* Metrics */}
-        <div className="flex items-center gap-3 shrink-0 ml-3 pl-3 border-l border-slate-700/50">
+        <div className="flex items-center gap-3 shrink-0 pl-3 border-l border-slate-700/50">
           <div className="text-center leading-tight">
             <div className="text-xs font-bold text-white font-mono">{metrics.throughput_per_hour}</div>
             <div className="text-[8px] text-slate-500 uppercase">/hr</div>

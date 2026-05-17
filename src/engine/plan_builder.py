@@ -100,45 +100,76 @@ def generate_config(spec: PlanSpec) -> dict:
 
     # --- Layout algorithm ---
     # Coordinate space: 100×50 meters
-    # Spawn at x=5, exit at x=95, stations spread evenly between x=12..88
+    # Serpentine layout: splits stations across rows when >6 stations
     spawn_x = 5.0
     exit_x = 95.0
-    station_x_start = 12.0
-    station_x_end = 88.0
-    center_y = 25.0
-
-    if n_stations == 1:
-        station_xs = [(station_x_start + station_x_end) / 2]
-    else:
-        step = (station_x_end - station_x_start) / (n_stations - 1)
-        station_xs = [station_x_start + i * step for i in range(n_stations)]
-
-    # Buffer positioned 4 units before each station
+    x_start = 12.0
+    x_end = 88.0
     buffer_offset = 4.0
+
+    max_per_row = 7
+    n_rows = max(1, (n_stations + max_per_row - 1) // max_per_row)
+    row_ys = {
+        1: [25.0],
+        2: [16.0, 34.0],
+        3: [12.0, 25.0, 38.0],
+    }.get(n_rows, [12.0 + i * 13 for i in range(n_rows)])
+
+    # Distribute stations across rows
+    rows: list[list[int]] = []
+    idx = 0
+    for r in range(n_rows):
+        remaining_rows = n_rows - r
+        count = (n_stations - idx + remaining_rows - 1) // remaining_rows
+        rows.append(list(range(idx, idx + count)))
+        idx += count
+
+    # Compute (x, y) for each station
+    station_positions: list[tuple[float, float]] = []
+    for r, row_indices in enumerate(rows):
+        row_y = row_ys[r]
+        n_in_row = len(row_indices)
+        if n_in_row == 1:
+            xs = [(x_start + x_end) / 2]
+        else:
+            step = (x_end - x_start) / (n_in_row - 1)
+            xs = [x_start + j * step for j in range(n_in_row)]
+        # Reverse even rows for serpentine path
+        if r % 2 == 1:
+            xs = list(reversed(xs))
+        for j, si in enumerate(row_indices):
+            station_positions.append((xs[j], row_y))
 
     # --- Build locations ---
     locations = []
     spawn_id = f"{_slugify(spec.entity_type)}_intake"
     exit_id = f"finished_{_slugify(spec.entity_type)}_out"
 
+    # Spawn near first station's row
+    spawn_y = station_positions[0][1] if station_positions else 25.0
     locations.append({
         "id": spawn_id,
         "type": "spawn_point",
         "label": "Intake",
-        "position": {"x": spawn_x, "y": center_y},
+        "position": {"x": spawn_x, "y": spawn_y},
     })
 
     station_ids = []
     buffer_ids = []
 
     for i, station in enumerate(spec.stations):
-        sx = station_xs[i]
-        bx = max(spawn_x + 2, sx - buffer_offset)
+        sx, sy = station_positions[i]
+        # Buffer slightly before the station along the x-axis direction
+        if i > 0:
+            prev_sx = station_positions[i - 1][0]
+            bx = sx + buffer_offset if prev_sx > sx else sx - buffer_offset
+        else:
+            bx = sx - buffer_offset
+        bx = max(spawn_x + 2, min(bx, exit_x - 2))
 
         buf_id = f"{_make_state_id(station.name)}_queue"
         sta_id = _make_state_id(station.name)
 
-        # Avoid duplicate IDs
         if buf_id in [l["id"] for l in locations]:
             buf_id = f"{buf_id}_{i}"
         if sta_id in [l["id"] for l in locations]:
@@ -151,30 +182,31 @@ def generate_config(spec: PlanSpec) -> dict:
             "id": buf_id,
             "type": "buffer",
             "label": f"{station.name} Queue",
-            "position": {"x": round(bx, 1), "y": center_y},
+            "position": {"x": round(bx, 1), "y": round(sy, 1)},
             "capacity": 10,
         })
 
         model = station.model_3d or _infer_model(station.name)
-        loc_entry = {
+        locations.append({
             "id": sta_id,
             "type": "machine",
             "label": station.name,
-            "position": {"x": round(sx, 1), "y": center_y},
+            "position": {"x": round(sx, 1), "y": round(sy, 1)},
             "capacity": 1,
             "properties": {
                 "cycle_time_mean": station.cycle_mean,
                 "mtbf_hours": 400,
                 "model": model,
             },
-        }
-        locations.append(loc_entry)
+        })
 
+    # Exit near last station's row
+    exit_y = station_positions[-1][1] if station_positions else 25.0
     locations.append({
         "id": exit_id,
         "type": "exit_point",
         "label": "Output",
-        "position": {"x": exit_x, "y": center_y},
+        "position": {"x": exit_x, "y": exit_y},
     })
 
     # --- Build paths ---

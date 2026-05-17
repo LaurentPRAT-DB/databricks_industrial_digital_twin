@@ -1,0 +1,972 @@
+simulation:
+  name: Electric Vehicle Assembly Plant
+  description: "Battery Cell \u2192 Battery Pack \u2192 Motor Assembly \u2192 Power\
+    \ Electronics \u2192 Chassis Stamping \u2192 Body Welding \u2192 Painting \u2192\
+    \ Drivetrain Integration \u2192 Battery Install \u2192 Interior \u2192 Exterior\
+    \ \u2192 Final Assembly \u2192 QC \u2192 End-of-Line Test"
+  duration_hours: 8.0
+  time_step_seconds: 1
+  seed: 2026
+facility:
+  name: Electric Vehicle Assembly Plant
+  coordinate_system: cartesian_2d
+  bounds:
+    width: 100
+    height: 50
+    unit: meters
+  locations:
+  - id: electric_vehicle_intake
+    type: spawn_point
+    label: Intake
+    position:
+      x: 5.0
+      y: 16.0
+  - id: battery_cell_assembly_queue
+    type: buffer
+    label: Battery Cell Assembly Queue
+    position:
+      x: 8.0
+      y: 16.0
+    capacity: 10
+  - id: battery_cell_assembly
+    type: machine
+    label: Battery Cell Assembly
+    position:
+      x: 12.0
+      y: 16.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 180.0
+      mtbf_hours: 400
+      model: robot_arm
+  - id: battery_pack_assembly_queue
+    type: buffer
+    label: Battery Pack Assembly Queue
+    position:
+      x: 20.7
+      y: 16.0
+    capacity: 10
+  - id: battery_pack_assembly
+    type: machine
+    label: Battery Pack Assembly
+    position:
+      x: 24.7
+      y: 16.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 300.0
+      mtbf_hours: 400
+      model: robot_arm
+  - id: electric_motor_assembly_queue
+    type: buffer
+    label: Electric Motor Assembly Queue
+    position:
+      x: 33.3
+      y: 16.0
+    capacity: 10
+  - id: electric_motor_assembly
+    type: machine
+    label: Electric Motor Assembly
+    position:
+      x: 37.3
+      y: 16.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 240.0
+      mtbf_hours: 400
+      model: machine_heavy
+  - id: power_electronics_queue
+    type: buffer
+    label: Power Electronics Queue
+    position:
+      x: 46.0
+      y: 16.0
+    capacity: 10
+  - id: power_electronics
+    type: machine
+    label: Power Electronics
+    position:
+      x: 50.0
+      y: 16.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 150.0
+      mtbf_hours: 400
+      model: machine_bed
+  - id: chassis_stamping_queue
+    type: buffer
+    label: Chassis Stamping Queue
+    position:
+      x: 58.7
+      y: 16.0
+    capacity: 10
+  - id: chassis_stamping
+    type: machine
+    label: Chassis Stamping
+    position:
+      x: 62.7
+      y: 16.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 60.0
+      mtbf_hours: 400
+      model: machine_heavy
+  - id: body_welding_queue
+    type: buffer
+    label: Body Welding Queue
+    position:
+      x: 71.3
+      y: 16.0
+    capacity: 10
+  - id: body_welding
+    type: machine
+    label: Body Welding
+    position:
+      x: 75.3
+      y: 16.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 120.0
+      mtbf_hours: 400
+      model: robot_arm
+  - id: painting_queue
+    type: buffer
+    label: Painting Queue
+    position:
+      x: 84.0
+      y: 16.0
+    capacity: 10
+  - id: painting
+    type: machine
+    label: Painting
+    position:
+      x: 88.0
+      y: 16.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 600.0
+      mtbf_hours: 400
+      model: robot_arm
+  - id: drivetrain_integration_queue
+    type: buffer
+    label: Drivetrain Integration Queue
+    position:
+      x: 84.0
+      y: 34.0
+    capacity: 10
+  - id: drivetrain_integration
+    type: machine
+    label: Drivetrain Integration
+    position:
+      x: 88.0
+      y: 34.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 180.0
+      mtbf_hours: 400
+      model: robot_arm
+  - id: battery_pack_install_queue
+    type: buffer
+    label: Battery Pack Install Queue
+    position:
+      x: 79.3
+      y: 34.0
+    capacity: 10
+  - id: battery_pack_install
+    type: machine
+    label: Battery Pack Install
+    position:
+      x: 75.3
+      y: 34.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 120.0
+      mtbf_hours: 400
+      model: robot_arm
+  - id: interior_assembly_queue
+    type: buffer
+    label: Interior Assembly Queue
+    position:
+      x: 66.7
+      y: 34.0
+    capacity: 10
+  - id: interior_assembly
+    type: machine
+    label: Interior Assembly
+    position:
+      x: 62.7
+      y: 34.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 300.0
+      mtbf_hours: 400
+      model: machine_bed
+  - id: exterior_assembly_queue
+    type: buffer
+    label: Exterior Assembly Queue
+    position:
+      x: 54.0
+      y: 34.0
+    capacity: 10
+  - id: exterior_assembly
+    type: machine
+    label: Exterior Assembly
+    position:
+      x: 50.0
+      y: 34.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 180.0
+      mtbf_hours: 400
+      model: machine_bed
+  - id: final_assembly_queue
+    type: buffer
+    label: Final Assembly Queue
+    position:
+      x: 41.3
+      y: 34.0
+    capacity: 10
+  - id: final_assembly
+    type: machine
+    label: Final Assembly
+    position:
+      x: 37.3
+      y: 34.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 240.0
+      mtbf_hours: 400
+      model: machine_bed
+  - id: quality_inspection_queue
+    type: buffer
+    label: Quality Inspection Queue
+    position:
+      x: 28.7
+      y: 34.0
+    capacity: 10
+  - id: quality_inspection
+    type: machine
+    label: Quality Inspection
+    position:
+      x: 24.7
+      y: 34.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 180.0
+      mtbf_hours: 400
+      model: scanner
+  - id: end_of_line_test_queue
+    type: buffer
+    label: End of Line Test Queue
+    position:
+      x: 16.0
+      y: 34.0
+    capacity: 10
+  - id: end_of_line_test
+    type: machine
+    label: End of Line Test
+    position:
+      x: 12.0
+      y: 34.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 300.0
+      mtbf_hours: 400
+      model: scanner
+  - id: finished_electric_vehicle_out
+    type: exit_point
+    label: Output
+    position:
+      x: 95.0
+      y: 34.0
+  paths:
+  - from: electric_vehicle_intake
+    to: battery_cell_assembly_queue
+    distance: 3.0
+  - from: battery_cell_assembly_queue
+    to: battery_cell_assembly
+    distance: 4.0
+  - from: battery_cell_assembly
+    to: battery_pack_assembly_queue
+    distance: 8.7
+  - from: battery_pack_assembly_queue
+    to: battery_pack_assembly
+    distance: 4.0
+  - from: battery_pack_assembly
+    to: electric_motor_assembly_queue
+    distance: 8.6
+  - from: electric_motor_assembly_queue
+    to: electric_motor_assembly
+    distance: 4.0
+  - from: electric_motor_assembly
+    to: power_electronics_queue
+    distance: 8.7
+  - from: power_electronics_queue
+    to: power_electronics
+    distance: 4.0
+  - from: power_electronics
+    to: chassis_stamping_queue
+    distance: 8.7
+  - from: chassis_stamping_queue
+    to: chassis_stamping
+    distance: 4.0
+  - from: chassis_stamping
+    to: body_welding_queue
+    distance: 8.6
+  - from: body_welding_queue
+    to: body_welding
+    distance: 4.0
+  - from: body_welding
+    to: painting_queue
+    distance: 8.7
+  - from: painting_queue
+    to: painting
+    distance: 4.0
+  - from: painting
+    to: drivetrain_integration_queue
+    distance: 18.4
+  - from: drivetrain_integration_queue
+    to: drivetrain_integration
+    distance: 4.0
+  - from: drivetrain_integration
+    to: battery_pack_install_queue
+    distance: 8.7
+  - from: battery_pack_install_queue
+    to: battery_pack_install
+    distance: 4.0
+  - from: battery_pack_install
+    to: interior_assembly_queue
+    distance: 8.6
+  - from: interior_assembly_queue
+    to: interior_assembly
+    distance: 4.0
+  - from: interior_assembly
+    to: exterior_assembly_queue
+    distance: 8.7
+  - from: exterior_assembly_queue
+    to: exterior_assembly
+    distance: 4.0
+  - from: exterior_assembly
+    to: final_assembly_queue
+    distance: 8.7
+  - from: final_assembly_queue
+    to: final_assembly
+    distance: 4.0
+  - from: final_assembly
+    to: quality_inspection_queue
+    distance: 8.6
+  - from: quality_inspection_queue
+    to: quality_inspection
+    distance: 4.0
+  - from: quality_inspection
+    to: end_of_line_test_queue
+    distance: 8.7
+  - from: end_of_line_test_queue
+    to: end_of_line_test
+    distance: 4.0
+  - from: end_of_line_test
+    to: finished_electric_vehicle_out
+    distance: 83.0
+state_graphs:
+  product_flow:
+    states:
+      waiting:
+        type: queued
+        description: Electric Vehicle waiting in buffer
+        queue_discipline: FIFO
+      in_transit:
+        type: moving
+        description: Moving between stations on conveyor
+        speed:
+          distribution: constant
+          params:
+            value: 2.0
+      battery_cell_assembly:
+        type: stationary
+        description: Battery Cell Assembly
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 180.0
+            std: 15.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: battery_cell_assembly_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: battery_cell_assembly_completed
+      battery_pack_assembly:
+        type: stationary
+        description: Battery Pack Assembly
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 300.0
+            std: 25.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: battery_pack_assembly_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: battery_pack_assembly_completed
+      electric_motor_assembly:
+        type: stationary
+        description: Electric Motor Assembly
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 240.0
+            std: 20.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: electric_motor_assembly_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: electric_motor_assembly_completed
+      power_electronics:
+        type: stationary
+        description: Power Electronics
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 150.0
+            std: 12.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: power_electronics_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: power_electronics_completed
+      chassis_stamping:
+        type: stationary
+        description: Chassis Stamping
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 60.0
+            std: 5.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: chassis_stamping_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: chassis_stamping_completed
+      body_welding:
+        type: stationary
+        description: Body Welding
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 120.0
+            std: 10.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: body_welding_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: body_welding_completed
+      painting:
+        type: stationary
+        description: Painting
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 600.0
+            std: 30.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: painting_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: painting_completed
+      drivetrain_integration:
+        type: stationary
+        description: Drivetrain Integration
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 180.0
+            std: 15.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: drivetrain_integration_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: drivetrain_integration_completed
+      battery_pack_install:
+        type: stationary
+        description: Battery Pack Install
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 120.0
+            std: 10.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: battery_pack_install_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: battery_pack_install_completed
+      interior_assembly:
+        type: stationary
+        description: Interior Assembly
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 300.0
+            std: 25.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: interior_assembly_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: interior_assembly_completed
+      exterior_assembly:
+        type: stationary
+        description: Exterior Assembly
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 180.0
+            std: 15.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: exterior_assembly_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: exterior_assembly_completed
+      final_assembly:
+        type: stationary
+        description: Final Assembly
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 240.0
+            std: 20.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: final_assembly_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: final_assembly_completed
+      quality_inspection:
+        type: stationary
+        description: Quality Inspection
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 180.0
+            std: 15.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: quality_inspection_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: quality_inspection_completed
+      end_of_line_test:
+        type: stationary
+        description: End of Line Test
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 300.0
+            std: 25.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: end_of_line_test_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: end_of_line_test_completed
+      done:
+        type: terminal
+        description: Electric Vehicle complete
+        on_enter:
+        - action: emit_event
+          event_type: electric_vehicle_completed
+        - action: destroy_entity
+    transitions:
+    - from: waiting
+      to: in_transit
+      condition:
+        type: resource_available
+        resource_type: machine
+      priority: 1
+    - from: in_transit
+      to: waiting
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: resource_busy
+          resource_type: machine
+      priority: 1
+    - from: in_transit
+      to: battery_cell_assembly
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 0
+      priority: 2
+    - from: in_transit
+      to: battery_pack_assembly
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 1
+      priority: 2
+    - from: in_transit
+      to: electric_motor_assembly
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 2
+      priority: 2
+    - from: in_transit
+      to: power_electronics
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 3
+      priority: 2
+    - from: in_transit
+      to: chassis_stamping
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 4
+      priority: 2
+    - from: in_transit
+      to: body_welding
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 5
+      priority: 2
+    - from: in_transit
+      to: painting
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 6
+      priority: 2
+    - from: in_transit
+      to: drivetrain_integration
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 7
+      priority: 2
+    - from: in_transit
+      to: battery_pack_install
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 8
+      priority: 2
+    - from: in_transit
+      to: interior_assembly
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 9
+      priority: 2
+    - from: in_transit
+      to: exterior_assembly
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 10
+      priority: 2
+    - from: in_transit
+      to: final_assembly
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 11
+      priority: 2
+    - from: in_transit
+      to: quality_inspection
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 12
+      priority: 2
+    - from: in_transit
+      to: end_of_line_test
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 13
+      priority: 2
+    - from: in_transit
+      to: done
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: '>'
+          value: 13
+      priority: 2
+    - from: battery_cell_assembly
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: battery_pack_assembly
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: electric_motor_assembly
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: power_electronics
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: chassis_stamping
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: body_welding
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: painting
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: drivetrain_integration
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: battery_pack_install
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: interior_assembly
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: exterior_assembly
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: final_assembly
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: quality_inspection
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: end_of_line_test
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+entity_types:
+  electric_vehicle:
+    state_graph: product_flow
+    initial_state: waiting
+    spawn_rule: schedule
+    properties:
+      station_index:
+        type: integer
+        initial: 0
+      product_type:
+        type: categorical
+        values:
+        - sedan
+        - suv
+        - crossover
+        - sports
+        weights:
+        - 0.25
+        - 0.25
+        - 0.25
+        - 0.25
+schedule:
+  type: poisson
+  rate_per_hour: 10.0
+  shifts:
+  - name: morning
+    start: 06:00
+    end: '14:00'
+    rate_multiplier: 1.0
+  - name: afternoon
+    start: '14:00'
+    end: '22:00'
+    rate_multiplier: 0.9
+  - name: night
+    start: '22:00'
+    end: 06:00
+    rate_multiplier: 0.5

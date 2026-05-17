@@ -229,12 +229,6 @@ export default function PlanBuilder({ onGenerate, onClose }: Props) {
         <section>
           <div className="flex items-center justify-between mb-2">
             <label className="text-xs font-semibold text-slate-400 uppercase">Stations ({stations.length})</label>
-            <button
-              onClick={addStation}
-              className="text-xs text-blue-400 hover:text-blue-300 font-medium"
-            >
-              + Add Station
-            </button>
           </div>
           <div className="space-y-2">
             {stations.map((s, i) => (
@@ -293,6 +287,12 @@ export default function PlanBuilder({ onGenerate, onClose }: Props) {
                 Pick a template or add stations manually
               </div>
             )}
+            <button
+              onClick={addStation}
+              className="w-full py-2 mt-1 rounded border border-dashed border-slate-600 text-xs text-blue-400 hover:text-blue-300 hover:border-blue-500 font-medium transition-colors"
+            >
+              + Add Station
+            </button>
           </div>
         </section>
 

@@ -1,0 +1,972 @@
+simulation:
+  name: Data Center Build
+  description: "Site Prep \u2192 Foundation \u2192 Raised Floor \u2192 Electrical\
+    \ \u2192 Cooling \u2192 Cabling \u2192 Racks \u2192 Power \u2192 Network \u2192\
+    \ Fire Suppression \u2192 Security \u2192 Servers \u2192 Commissioning \u2192\
+    \ Burn-In"
+  duration_hours: 8.0
+  time_step_seconds: 1
+  seed: 7777
+facility:
+  name: Data Center Build
+  coordinate_system: cartesian_2d
+  bounds:
+    width: 100
+    height: 50
+    unit: meters
+  locations:
+  - id: data_hall_intake
+    type: spawn_point
+    label: Intake
+    position:
+      x: 5.0
+      y: 16.0
+  - id: site_preparation_queue
+    type: buffer
+    label: Site Preparation Queue
+    position:
+      x: 8.0
+      y: 16.0
+    capacity: 10
+  - id: site_preparation
+    type: machine
+    label: Site Preparation
+    position:
+      x: 12.0
+      y: 16.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 1800.0
+      mtbf_hours: 400
+      model: machine_heavy
+  - id: foundation_steel_queue
+    type: buffer
+    label: Foundation & Steel Queue
+    position:
+      x: 20.7
+      y: 16.0
+    capacity: 10
+  - id: foundation_steel
+    type: machine
+    label: Foundation & Steel
+    position:
+      x: 24.7
+      y: 16.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 3600.0
+      mtbf_hours: 400
+      model: crane
+  - id: raised_floor_install_queue
+    type: buffer
+    label: Raised Floor Install Queue
+    position:
+      x: 33.3
+      y: 16.0
+    capacity: 10
+  - id: raised_floor_install
+    type: machine
+    label: Raised Floor Install
+    position:
+      x: 37.3
+      y: 16.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 900.0
+      mtbf_hours: 400
+      model: machine_bed
+  - id: electrical_infrastructure_queue
+    type: buffer
+    label: Electrical Infrastructure Queue
+    position:
+      x: 46.0
+      y: 16.0
+    capacity: 10
+  - id: electrical_infrastructure
+    type: machine
+    label: Electrical Infrastructure
+    position:
+      x: 50.0
+      y: 16.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 2400.0
+      mtbf_hours: 400
+      model: machine_heavy
+  - id: cooling_system_install_queue
+    type: buffer
+    label: Cooling System Install Queue
+    position:
+      x: 58.7
+      y: 16.0
+    capacity: 10
+  - id: cooling_system_install
+    type: machine
+    label: Cooling System Install
+    position:
+      x: 62.7
+      y: 16.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 1800.0
+      mtbf_hours: 400
+      model: machine_window
+  - id: cable_tray_conduit_queue
+    type: buffer
+    label: Cable Tray & Conduit Queue
+    position:
+      x: 71.3
+      y: 16.0
+    capacity: 10
+  - id: cable_tray_conduit
+    type: machine
+    label: Cable Tray & Conduit
+    position:
+      x: 75.3
+      y: 16.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 600.0
+      mtbf_hours: 400
+      model: conveyor
+  - id: server_rack_install_queue
+    type: buffer
+    label: Server Rack Install Queue
+    position:
+      x: 84.0
+      y: 16.0
+    capacity: 10
+  - id: server_rack_install
+    type: machine
+    label: Server Rack Install
+    position:
+      x: 88.0
+      y: 16.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 450.0
+      mtbf_hours: 400
+      model: robot_arm
+  - id: power_distribution_queue
+    type: buffer
+    label: Power Distribution Queue
+    position:
+      x: 84.0
+      y: 34.0
+    capacity: 10
+  - id: power_distribution
+    type: machine
+    label: Power Distribution
+    position:
+      x: 88.0
+      y: 34.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 900.0
+      mtbf_hours: 400
+      model: machine_heavy
+  - id: network_cabling_queue
+    type: buffer
+    label: Network Cabling Queue
+    position:
+      x: 79.3
+      y: 34.0
+    capacity: 10
+  - id: network_cabling
+    type: machine
+    label: Network Cabling
+    position:
+      x: 75.3
+      y: 34.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 1200.0
+      mtbf_hours: 400
+      model: conveyor
+  - id: fire_suppression_queue
+    type: buffer
+    label: Fire Suppression Queue
+    position:
+      x: 66.7
+      y: 34.0
+    capacity: 10
+  - id: fire_suppression
+    type: machine
+    label: Fire Suppression
+    position:
+      x: 62.7
+      y: 34.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 600.0
+      mtbf_hours: 400
+      model: piston
+  - id: security_systems_queue
+    type: buffer
+    label: Security Systems Queue
+    position:
+      x: 54.0
+      y: 34.0
+    capacity: 10
+  - id: security_systems
+    type: machine
+    label: Security Systems
+    position:
+      x: 50.0
+      y: 34.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 480.0
+      mtbf_hours: 400
+      model: scanner
+  - id: server_install_cabling_queue
+    type: buffer
+    label: Server Install & Cabling Queue
+    position:
+      x: 41.3
+      y: 34.0
+    capacity: 10
+  - id: server_install_cabling
+    type: machine
+    label: Server Install & Cabling
+    position:
+      x: 37.3
+      y: 34.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 360.0
+      mtbf_hours: 400
+      model: robot_arm
+  - id: commissioning_test_queue
+    type: buffer
+    label: Commissioning & Test Queue
+    position:
+      x: 28.7
+      y: 34.0
+    capacity: 10
+  - id: commissioning_test
+    type: machine
+    label: Commissioning & Test
+    position:
+      x: 24.7
+      y: 34.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 1800.0
+      mtbf_hours: 400
+      model: scanner
+  - id: burn_in_load_test_queue
+    type: buffer
+    label: Burn-In & Load Test Queue
+    position:
+      x: 16.0
+      y: 34.0
+    capacity: 10
+  - id: burn_in_load_test
+    type: machine
+    label: Burn-In & Load Test
+    position:
+      x: 12.0
+      y: 34.0
+    capacity: 1
+    properties:
+      cycle_time_mean: 7200.0
+      mtbf_hours: 400
+      model: scanner
+  - id: finished_data_hall_out
+    type: exit_point
+    label: Output
+    position:
+      x: 95.0
+      y: 34.0
+  paths:
+  - from: data_hall_intake
+    to: site_preparation_queue
+    distance: 3.0
+  - from: site_preparation_queue
+    to: site_preparation
+    distance: 4.0
+  - from: site_preparation
+    to: foundation_steel_queue
+    distance: 8.7
+  - from: foundation_steel_queue
+    to: foundation_steel
+    distance: 4.0
+  - from: foundation_steel
+    to: raised_floor_install_queue
+    distance: 8.6
+  - from: raised_floor_install_queue
+    to: raised_floor_install
+    distance: 4.0
+  - from: raised_floor_install
+    to: electrical_infrastructure_queue
+    distance: 8.7
+  - from: electrical_infrastructure_queue
+    to: electrical_infrastructure
+    distance: 4.0
+  - from: electrical_infrastructure
+    to: cooling_system_install_queue
+    distance: 8.7
+  - from: cooling_system_install_queue
+    to: cooling_system_install
+    distance: 4.0
+  - from: cooling_system_install
+    to: cable_tray_conduit_queue
+    distance: 8.6
+  - from: cable_tray_conduit_queue
+    to: cable_tray_conduit
+    distance: 4.0
+  - from: cable_tray_conduit
+    to: server_rack_install_queue
+    distance: 8.7
+  - from: server_rack_install_queue
+    to: server_rack_install
+    distance: 4.0
+  - from: server_rack_install
+    to: power_distribution_queue
+    distance: 18.4
+  - from: power_distribution_queue
+    to: power_distribution
+    distance: 4.0
+  - from: power_distribution
+    to: network_cabling_queue
+    distance: 8.7
+  - from: network_cabling_queue
+    to: network_cabling
+    distance: 4.0
+  - from: network_cabling
+    to: fire_suppression_queue
+    distance: 8.6
+  - from: fire_suppression_queue
+    to: fire_suppression
+    distance: 4.0
+  - from: fire_suppression
+    to: security_systems_queue
+    distance: 8.7
+  - from: security_systems_queue
+    to: security_systems
+    distance: 4.0
+  - from: security_systems
+    to: server_install_cabling_queue
+    distance: 8.7
+  - from: server_install_cabling_queue
+    to: server_install_cabling
+    distance: 4.0
+  - from: server_install_cabling
+    to: commissioning_test_queue
+    distance: 8.6
+  - from: commissioning_test_queue
+    to: commissioning_test
+    distance: 4.0
+  - from: commissioning_test
+    to: burn_in_load_test_queue
+    distance: 8.7
+  - from: burn_in_load_test_queue
+    to: burn_in_load_test
+    distance: 4.0
+  - from: burn_in_load_test
+    to: finished_data_hall_out
+    distance: 83.0
+state_graphs:
+  product_flow:
+    states:
+      waiting:
+        type: queued
+        description: Data Hall waiting in buffer
+        queue_discipline: FIFO
+      in_transit:
+        type: moving
+        description: Moving between stations on conveyor
+        speed:
+          distribution: constant
+          params:
+            value: 2.0
+      site_preparation:
+        type: stationary
+        description: Site Preparation
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 1800.0
+            std: 180.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: site_preparation_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: site_preparation_completed
+      foundation_steel:
+        type: stationary
+        description: Foundation & Steel
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 3600.0
+            std: 300.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: foundation_steel_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: foundation_steel_completed
+      raised_floor_install:
+        type: stationary
+        description: Raised Floor Install
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 900.0
+            std: 90.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: raised_floor_install_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: raised_floor_install_completed
+      electrical_infrastructure:
+        type: stationary
+        description: Electrical Infrastructure
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 2400.0
+            std: 200.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: electrical_infrastructure_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: electrical_infrastructure_completed
+      cooling_system_install:
+        type: stationary
+        description: Cooling System Install
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 1800.0
+            std: 150.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: cooling_system_install_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: cooling_system_install_completed
+      cable_tray_conduit:
+        type: stationary
+        description: Cable Tray & Conduit
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 600.0
+            std: 60.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: cable_tray_conduit_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: cable_tray_conduit_completed
+      server_rack_install:
+        type: stationary
+        description: Server Rack Install
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 450.0
+            std: 45.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: server_rack_install_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: server_rack_install_completed
+      power_distribution:
+        type: stationary
+        description: Power Distribution
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 900.0
+            std: 80.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: power_distribution_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: power_distribution_completed
+      network_cabling:
+        type: stationary
+        description: Network Cabling
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 1200.0
+            std: 120.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: network_cabling_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: network_cabling_completed
+      fire_suppression:
+        type: stationary
+        description: Fire Suppression
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 600.0
+            std: 60.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: fire_suppression_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: fire_suppression_completed
+      security_systems:
+        type: stationary
+        description: Security Systems
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 480.0
+            std: 48.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: security_systems_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: security_systems_completed
+      server_install_cabling:
+        type: stationary
+        description: Server Install & Cabling
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 360.0
+            std: 36.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: server_install_cabling_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: server_install_cabling_completed
+      commissioning_test:
+        type: stationary
+        description: Commissioning & Test
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 1800.0
+            std: 200.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: commissioning_test_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: commissioning_test_completed
+      burn_in_load_test:
+        type: stationary
+        description: Burn-In & Load Test
+        location_type: machine
+        duration:
+          distribution: normal
+          params:
+            mean: 7200.0
+            std: 600.0
+        on_enter:
+        - action: acquire_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: burn_in_load_test_started
+        on_exit:
+        - action: release_resource
+          resource_type: machine
+        - action: emit_event
+          event_type: burn_in_load_test_completed
+      done:
+        type: terminal
+        description: Data Hall complete
+        on_enter:
+        - action: emit_event
+          event_type: data_hall_completed
+        - action: destroy_entity
+    transitions:
+    - from: waiting
+      to: in_transit
+      condition:
+        type: resource_available
+        resource_type: machine
+      priority: 1
+    - from: in_transit
+      to: waiting
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: resource_busy
+          resource_type: machine
+      priority: 1
+    - from: in_transit
+      to: site_preparation
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 0
+      priority: 2
+    - from: in_transit
+      to: foundation_steel
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 1
+      priority: 2
+    - from: in_transit
+      to: raised_floor_install
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 2
+      priority: 2
+    - from: in_transit
+      to: electrical_infrastructure
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 3
+      priority: 2
+    - from: in_transit
+      to: cooling_system_install
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 4
+      priority: 2
+    - from: in_transit
+      to: cable_tray_conduit
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 5
+      priority: 2
+    - from: in_transit
+      to: server_rack_install
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 6
+      priority: 2
+    - from: in_transit
+      to: power_distribution
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 7
+      priority: 2
+    - from: in_transit
+      to: network_cabling
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 8
+      priority: 2
+    - from: in_transit
+      to: fire_suppression
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 9
+      priority: 2
+    - from: in_transit
+      to: security_systems
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 10
+      priority: 2
+    - from: in_transit
+      to: server_install_cabling
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 11
+      priority: 2
+    - from: in_transit
+      to: commissioning_test
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 12
+      priority: 2
+    - from: in_transit
+      to: burn_in_load_test
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: ==
+          value: 13
+      priority: 2
+    - from: in_transit
+      to: done
+      condition:
+        type: and
+        conditions:
+        - type: arrived_at_destination
+        - type: property_threshold
+          property: station_index
+          operator: '>'
+          value: 13
+      priority: 2
+    - from: site_preparation
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: foundation_steel
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: raised_floor_install
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: electrical_infrastructure
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: cooling_system_install
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: cable_tray_conduit
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: server_rack_install
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: power_distribution
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: network_cabling
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: fire_suppression
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: security_systems
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: server_install_cabling
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: commissioning_test
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+    - from: burn_in_load_test
+      to: in_transit
+      condition:
+        type: duration_elapsed
+      priority: 1
+      next_location:
+        type: next_in_sequence
+entity_types:
+  data_hall:
+    state_graph: product_flow
+    initial_state: waiting
+    spawn_rule: schedule
+    properties:
+      station_index:
+        type: integer
+        initial: 0
+      product_type:
+        type: categorical
+        values:
+        - hyperscale
+        - colocation
+        - enterprise
+        - edge
+        weights:
+        - 0.25
+        - 0.25
+        - 0.25
+        - 0.25
+schedule:
+  type: poisson
+  rate_per_hour: 2.0
+  shifts:
+  - name: morning
+    start: 06:00
+    end: '14:00'
+    rate_multiplier: 1.0
+  - name: afternoon
+    start: '14:00'
+    end: '22:00'
+    rate_multiplier: 0.9
+  - name: night
+    start: '22:00'
+    end: 06:00
+    rate_multiplier: 0.5
