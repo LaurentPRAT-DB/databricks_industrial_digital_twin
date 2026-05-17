@@ -20,6 +20,7 @@ from pydantic import BaseModel
 from src.engine.loader import load_config
 from src.engine.engine import SimulationEngine
 from src.engine.config import DeviationConfig
+from src.engine.plan_builder import PlanSpec, StationSpec, generate_config
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -191,6 +192,67 @@ async def load_scenario(req: LoadScenarioRequest):
         "status": "loaded",
         "id": req.id,
         "name": _static_config.get("config", {}).get("name", ""),
+        "frame_count": len(_simulation_frames),
+    }
+
+
+class GenerateScenarioStation(BaseModel):
+    name: str
+    cycle_mean: float = 60.0
+    cycle_std: float | None = None
+    model_3d: str | None = None
+
+
+class GenerateScenarioRequest(BaseModel):
+    name: str
+    description: str = ""
+    duration_hours: float = 8.0
+    entity_type: str = "part"
+    entity_variants: list[str] = []
+    spawn_rate_per_hour: float = 20.0
+    stations: list[GenerateScenarioStation]
+    seed: int | None = None
+
+
+@app.post("/api/scenarios/generate")
+async def generate_scenario(req: GenerateScenarioRequest):
+    if not req.stations:
+        return JSONResponse(status_code=400, content={"error": "At least one station is required"})
+
+    spec = PlanSpec(
+        name=req.name,
+        description=req.description,
+        duration_hours=req.duration_hours,
+        entity_type=req.entity_type,
+        entity_variants=req.entity_variants,
+        spawn_rate_per_hour=req.spawn_rate_per_hour,
+        stations=[
+            StationSpec(
+                name=s.name,
+                cycle_mean=s.cycle_mean,
+                cycle_std=s.cycle_std,
+                model_3d=s.model_3d,
+            )
+            for s in req.stations
+        ],
+        seed=req.seed,
+    )
+
+    config_dict = generate_config(spec)
+    slug = _slugify(req.name)
+    if not slug:
+        slug = "custom_scenario"
+
+    config_path = CONFIGS_DIR / f"{slug}.yaml"
+    with open(config_path, "w") as f:
+        yaml.dump(config_dict, f, default_flow_style=False, sort_keys=False)
+    logger.info("Generated scenario config: %s", config_path)
+
+    _precompute_simulation(slug)
+    return {
+        "status": "generated",
+        "id": slug,
+        "name": req.name,
         "frame_count": len(_simulation_frames),
     }
 
