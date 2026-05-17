@@ -1,0 +1,20 @@
+{
+  "name": "EV Battery Pack Assembly \u2014 What-if-3",
+  "scenario_id": "ev_battery_pack",
+  "overrides": {
+    "stacker_1": {
+      "cycle_time_factor": 1.3,
+      "failure_probability": 0.03,
+      "degradation_rate": 2.0
+    },
+    "stacker_2": {
+      "quality_defect_rate": 0.1
+    },
+    "eol_tester": {
+      "cycle_time_variability": 3.0,
+      "failure_probability": 0.05,
+      "quality_defect_rate": 0.1
+    }
+  },
+  "saved_at": "2026-05-17T14:04:00.036737+00:00"
+}

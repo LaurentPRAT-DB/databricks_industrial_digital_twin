@@ -1,0 +1,21 @@
+{
+  "name": "SMT Electronics Assembly \u2014 baseline - 1",
+  "scenario_id": "smt_electronics_assembly",
+  "report": {
+    "baseline": {
+      "name": "Baseline",
+      "metrics": {
+        "throughput_per_hour": 115.8,
+        "wip_count": 12,
+        "completed": 926,
+        "avg_utilization_pct": 25.3,
+        "total_queue_depth": 0,
+        "elapsed_hours": 8
+      }
+    },
+    "whatifs": [],
+    "run_count": 1,
+    "elapsed_s": 0.94
+  },
+  "saved_at": "2026-05-17T14:47:29.398750+00:00"
+}

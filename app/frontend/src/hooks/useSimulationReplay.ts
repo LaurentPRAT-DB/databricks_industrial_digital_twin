@@ -125,9 +125,11 @@ export function useSimulationReplay() {
 
   const changeSpeed = useCallback((s: PlaybackSpeed) => setSpeed(s), []);
 
+  const isFinished = totalFrames > 0 && currentFrameIndex >= totalFrames - 1 && !isPlaying;
+
   return {
     entities, resources, metrics, simConfig, scenarioId, whatifName, whatifOverrides, paths, locations, stateDescriptions,
-    isLoading, isPlaying, speed, currentFrameIndex, totalFrames,
+    isLoading, isPlaying, isFinished, speed, currentFrameIndex, totalFrames,
     progressPct, currentSimTime, elapsedHours,
     play, pause, togglePlayPause, seekTo, seekToPercent, changeSpeed,
     loadFrames,

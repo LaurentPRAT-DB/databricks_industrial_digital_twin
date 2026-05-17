@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import WhatIfTab from './WhatIfTab';
 import ReportTab from './ReportTab';
 
@@ -7,13 +7,18 @@ type Tab = 'whatifs' | 'report';
 interface Props {
   scenarioId: string;
   scenarioName: string;
+  initialTab?: Tab;
   onSimulate: () => void;
   onClose: () => void;
 }
 
-export default function ScenarioPanel({ scenarioId, scenarioName, onSimulate, onClose }: Props) {
-  const [activeTab, setActiveTab] = useState<Tab>('whatifs');
+export default function ScenarioPanel({ scenarioId, scenarioName, initialTab, onSimulate, onClose }: Props) {
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab || 'whatifs');
   const [reportFilenames, setReportFilenames] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (initialTab) setActiveTab(initialTab);
+  }, [initialTab]);
 
   const handleRunReport = (filenames: string[]) => {
     setReportFilenames(filenames);

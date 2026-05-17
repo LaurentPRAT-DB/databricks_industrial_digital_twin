@@ -1,0 +1,11 @@
+{
+  "name": "Steel Mini-Mill (EAF) \u2014 Furnace Stress Test",
+  "scenario_id": "steel_mini_mill",
+  "overrides": {
+    "eaf_1": {
+      "cycle_time_factor": 1.5,
+      "failure_probability": 0.05
+    }
+  },
+  "saved_at": "2026-05-17T14:11:10.578967+00:00"
+}

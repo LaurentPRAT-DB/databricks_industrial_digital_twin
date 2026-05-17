@@ -1,0 +1,50 @@
+{
+  "name": "Smartphone Chassis Line \u2014 t1",
+  "scenario_id": "assembly_line_3station",
+  "report": {
+    "baseline": {
+      "name": "Baseline",
+      "metrics": {
+        "throughput_per_hour": 22.5,
+        "wip_count": 1,
+        "completed": 180,
+        "avg_utilization_pct": 17.3,
+        "total_queue_depth": 0,
+        "elapsed_hours": 8
+      }
+    },
+    "whatifs": [
+      {
+        "name": "TEST3",
+        "filename": "test3.json",
+        "overrides": {
+          "cnc_mill_2": {
+            "cycle_time_factor": 1.3,
+            "failure_probability": 0.03,
+            "degradation_rate": 2
+          },
+          "press_fit_station": {
+            "quality_defect_rate": 0.1
+          },
+          "cmm_inspector": {
+            "cycle_time_factor": 1.3,
+            "failure_probability": 0.03,
+            "degradation_rate": 2
+          }
+        },
+        "metrics": {
+          "throughput_per_hour": 22.2,
+          "wip_count": 2,
+          "completed": 178,
+          "avg_utilization_pct": 20.7,
+          "total_queue_depth": 0,
+          "elapsed_hours": 8
+        },
+        "saved_at": "2026-05-16T22:05:24.059002+00:00"
+      }
+    ],
+    "run_count": 2,
+    "elapsed_s": 0.36
+  },
+  "saved_at": "2026-05-17T15:02:09.620405+00:00"
+}

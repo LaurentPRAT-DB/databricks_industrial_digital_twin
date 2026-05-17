@@ -16,6 +16,15 @@ function App() {
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
   const [showPanel, setShowPanel] = useState(false);
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
+  const [panelTab, setPanelTab] = useState<'whatifs' | 'report'>('whatifs');
+
+  useEffect(() => {
+    if (sim.isFinished && sim.scenarioId) {
+      setShowPanel(true);
+      setShowPlanBuilder(false);
+      setPanelTab('report');
+    }
+  }, [sim.isFinished, sim.scenarioId]);
 
   const handleScenarioLoad = useCallback(async (scenarioId: string) => {
     await sim.loadFrames();
@@ -97,7 +106,7 @@ function App() {
           />
           {sim.scenarioId && (
             <button
-              onClick={() => { setShowPanel(!showPanel); if (!showPanel) setShowPlanBuilder(false); }}
+              onClick={() => { setShowPanel(!showPanel); if (!showPanel) { setShowPlanBuilder(false); setPanelTab('whatifs'); } }}
               className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
                 showPanel
                   ? 'bg-teal-600 border-teal-500 text-white'
@@ -150,6 +159,7 @@ function App() {
           <ScenarioPanel
             scenarioId={sim.scenarioId}
             scenarioName={sim.simConfig.name}
+            initialTab={panelTab}
             onSimulate={() => { sim.loadFrames(); }}
             onClose={() => setShowPanel(false)}
           />

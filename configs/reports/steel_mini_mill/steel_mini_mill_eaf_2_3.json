@@ -1,0 +1,68 @@
+{
+  "name": "Steel Mini-Mill (EAF) \u2014 2-3",
+  "scenario_id": "steel_mini_mill",
+  "report": {
+    "baseline": {
+      "name": "Baseline",
+      "metrics": {
+        "throughput_per_hour": 3.2,
+        "wip_count": 1,
+        "completed": 26,
+        "avg_utilization_pct": 16.8,
+        "total_queue_depth": 0,
+        "elapsed_hours": 8
+      }
+    },
+    "whatifs": [
+      {
+        "name": "Steel Mini-Mill (EAF) \u2014 Furnace Stress Test",
+        "filename": "steel_mini_mill_eaf_furnace_stress_test.json",
+        "overrides": {
+          "eaf_1": {
+            "cycle_time_factor": 1.5,
+            "failure_probability": 0.05
+          }
+        },
+        "metrics": {
+          "throughput_per_hour": 3.2,
+          "wip_count": 1,
+          "completed": 26,
+          "avg_utilization_pct": 16.8,
+          "total_queue_depth": 0,
+          "elapsed_hours": 8
+        },
+        "saved_at": "2026-05-17T14:11:10.578967+00:00"
+      },
+      {
+        "name": "Steel Mini-Mill (EAF) \u2014 TEST1",
+        "filename": "steel_mini_mill_eaf_test1.json",
+        "overrides": {
+          "ladle_furnace": {
+            "quality_defect_rate": 0.1
+          },
+          "continuous_caster": {
+            "cycle_time_variability": 3,
+            "failure_probability": 0.05
+          },
+          "cooling_bed": {
+            "cycle_time_factor": 1.3,
+            "failure_probability": 0.03,
+            "degradation_rate": 2
+          }
+        },
+        "metrics": {
+          "throughput_per_hour": 3.2,
+          "wip_count": 1,
+          "completed": 26,
+          "avg_utilization_pct": 18.5,
+          "total_queue_depth": 0,
+          "elapsed_hours": 8
+        },
+        "saved_at": "2026-05-17T14:25:16.014287+00:00"
+      }
+    ],
+    "run_count": 3,
+    "elapsed_s": 0.72
+  },
+  "saved_at": "2026-05-17T14:31:11.395090+00:00"
+}
