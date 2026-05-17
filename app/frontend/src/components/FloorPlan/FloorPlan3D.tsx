@@ -38,7 +38,7 @@ function toWorld(x: number, y: number): [number, number, number] {
   return [x - 50, 0, -(y - 25)];
 }
 
-function LocationModel({ resource, label, locations }: { resource: Resource; label: string; locations: LocationMeta[] }) {
+function LocationModel({ resource, label, locations, machineIndex }: { resource: Resource; label: string; locations: LocationMeta[]; machineIndex: number }) {
   const color = LOCATION_COLORS[resource.type] || '#4b5563';
   const isBusy = resource.status === 'busy';
   const [wx, , wz] = toWorld(resource.x, resource.y);
@@ -58,12 +58,15 @@ function LocationModel({ resource, label, locations }: { resource: Resource; lab
   const showLabel = resource.type === 'machine' || resource.type === 'spawn_point' || resource.type === 'exit_point';
   const showBufferCount = resource.type === 'buffer' && resource.queue_depth > 0;
 
+  const labelY = 5.0 + (machineIndex % 3) * 3.5;
+  const labelZ = [-4, 0, 4][machineIndex % 3];
+
   return (
     <group position={[wx, yOffset, wz]}>
       <GLTFEquipment modelConfig={modelConfig} color={color} isBusy={isBusy} />
       {showLabel && (
-        <Html position={[0, 3.2, 0]} center distanceFactor={60} zIndexRange={[10, 0]}>
-          <div className="text-[9px] font-bold text-white bg-slate-900/90 border border-slate-600/50 px-1.5 py-0.5 rounded whitespace-nowrap pointer-events-none select-none shadow-lg backdrop-blur-sm">
+        <Html transform sprite position={[0, labelY, labelZ]} scale={1.8} style={{ pointerEvents: 'none' }}>
+          <div className="text-[13px] font-bold text-white bg-slate-900/90 border border-slate-600/50 px-2.5 py-1 rounded whitespace-nowrap select-none shadow-lg">
             {label}
             {resource.type === 'machine' && isBusy && (
               <span className="ml-1 text-blue-400">&#9881;</span>
@@ -162,12 +165,13 @@ function Scene({ entities, resources, paths, locations }: Props) {
       ))}
 
       {/* Location models */}
-      {resources.map((r) => (
+      {resources.map((r, i) => (
         <LocationModel
           key={r.id}
           resource={r}
           label={labelMap.get(r.id) || r.id.replace(/_/g, ' ')}
           locations={locations}
+          machineIndex={i}
         />
       ))}
 
