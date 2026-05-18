@@ -62,7 +62,7 @@ export default function ScenarioPanel({ scenarioId, scenarioName, initialTab, on
   const activeScenario = scenarios.find(s => s.active);
 
   return (
-    <div className="w-[480px] bg-slate-800 border-l border-slate-700 flex flex-col overflow-hidden">
+    <div className="w-80 bg-slate-800 border-l border-slate-700 flex flex-col overflow-hidden">
       {/* Panel header with scenario picker */}
       <div className="px-4 py-3 border-b border-slate-700 shrink-0">
         <div className="flex items-center justify-between mb-2">
