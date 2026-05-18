@@ -139,7 +139,7 @@ function App() {
         {/* Right side: PlanBuilder > ScenarioPanel > MachineDetail > default sidebar */}
         {showPlanBuilder ? (
           <PlanBuilder
-            onGenerate={() => { sim.loadFrames(); setShowPlanBuilder(false); setShowPanel(true); }}
+            onGenerate={() => { sim.loadFrames(); setShowPlanBuilder(false); setShowPanel(false); }}
             onClose={() => setShowPlanBuilder(false)}
           />
         ) : showPanel ? (
@@ -147,7 +147,7 @@ function App() {
             scenarioId={sim.scenarioId}
             scenarioName={sim.simConfig.name}
             initialTab={panelTab}
-            onSimulate={() => { sim.loadFrames(); }}
+            onSimulate={() => { sim.loadFrames(); setShowPanel(false); }}
             onLoadScenario={async () => { await sim.loadFrames(); setShowPanel(false); }}
             onNewScenario={() => { setShowPlanBuilder(true); setShowPanel(false); }}
             onClose={() => setShowPanel(false)}
