@@ -221,6 +221,38 @@ export default function ReportTab({ scenarioId, scenarioName, initialFilenames }
     doLoadReport(confirmLoad);
   }, [confirmLoad, doLoadReport]);
 
+  // Print report
+  const [printing, setPrinting] = useState(false);
+  const [printFlash, setPrintFlash] = useState('');
+
+  const printReport = useCallback(async () => {
+    if (!report) return;
+    setPrinting(true);
+    try {
+      const res = await fetch('/api/reports/print', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scenario_id: scenarioId,
+          scenario_name: scenarioName,
+          report: { baseline: report.baseline, whatifs: report.whatifs, run_count: report.run_count, elapsed_s: report.elapsed_s },
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPrintFlash(`Saved: ${data.filename}`);
+        setTimeout(() => setPrintFlash(''), 3000);
+      } else {
+        setPrintFlash('Print failed');
+        setTimeout(() => setPrintFlash(''), 3000);
+      }
+    } catch {
+      setPrintFlash('Print failed');
+      setTimeout(() => setPrintFlash(''), 3000);
+    }
+    setPrinting(false);
+  }, [report, scenarioId, scenarioName]);
+
   // Saved reports list component (reused in empty state and after results)
   const savedReportsList = savedReports.length > 0 ? (
     <div>
@@ -462,6 +494,20 @@ export default function ReportTab({ scenarioId, scenarioName, initialFilenames }
                 }`}
               >
                 {saving ? 'Saving...' : saveFlash || 'Save Report'}
+              </button>
+              <button
+                onClick={printReport}
+                disabled={printing}
+                className={`px-3 py-1.5 text-[10px] font-bold rounded transition-colors ${
+                  printFlash && !printFlash.includes('failed')
+                    ? 'bg-green-600 text-white'
+                    : printFlash
+                      ? 'bg-rose-600 text-white'
+                      : 'bg-blue-600 hover:bg-blue-500 text-white'
+                }`}
+                title="Export as Markdown file"
+              >
+                {printing ? '...' : printFlash || 'Print'}
               </button>
               <button
                 onClick={() => runReport()}
