@@ -8,35 +8,77 @@ Designed for deployment as a **Databricks App** with **Lakebase** (PostgreSQL) f
 
 ## Architecture
 
+```mermaid
+flowchart TB
+    subgraph databricks["Databricks Platform"]
+        direction TB
+
+        subgraph uc["Unity Catalog — Governance & Storage"]
+            catalog["Catalog: serverless_stable_*"]
+            schema["Schema: industrial_digital_twin"]
+            volume["Volume: raw_data"]
+            configs_vol["configs/*.yaml<br/><i>Equipment definitions,<br/>process parameters,<br/>facility layouts</i>"]
+            catalog --> schema --> volume --> configs_vol
+        end
+
+        subgraph app["Databricks App — Runtime"]
+            direction LR
+            frontend["React Dashboard<br/><i>Vite + Tailwind + R3F</i>"]
+            backend["FastAPI Backend<br/><i>uvicorn · startup.py</i>"]
+            engine["Simulation Engine<br/><i>State machine · Spatial routing<br/>Resource contention · KPIs</i>"]
+            configs_local["Bundled configs/<br/><i>Synced by DABs</i>"]
+            frontend <-->|"REST API"| backend
+            backend --> engine
+            configs_local -->|"YAML load"| engine
+        end
+
+        subgraph lakebase["Lakebase — PostgreSQL (Autoscale)"]
+            direction LR
+            lb_endpoint["Endpoint:<br/>ep-*.database.*.cloud.databricks.com"]
+            scenarios_t["scenarios"]
+            sim_ticks["simulation_ticks"]
+            whatifs_t["whatifs"]
+            reports_t["reports"]
+            lb_endpoint --- scenarios_t & sim_ticks & whatifs_t & reports_t
+        end
+
+        subgraph lakehouse["Lakehouse — Delta Lake (Future)"]
+            telemetry["Historical Telemetry<br/><i>state_transitions<br/>position_snapshots<br/>resource_utilization</i>"]
+            ml["ML Training<br/><i>Predictive maintenance<br/>Bottleneck detection</i>"]
+            telemetry --> ml
+        end
+    end
+
+    subgraph dabs["Deployment — DABs"]
+        direction LR
+        bundle["databricks.yml"]
+        res["resources/app.yml"]
+        bundle --- res
+    end
+
+    %% Data flows
+    volume -..->|"Asset source<br/>(design-time)"| configs_local
+    backend -->|"OAuth M2M<br/>persist ticks, reports,<br/>what-ifs, scenarios"| lb_endpoint
+    lakebase -.->|"Reverse ETL sync"| lakehouse
+    dabs -->|"bundle deploy"| app
+
+    %% Styling
+    classDef platform fill:#1a1a2e,stroke:#e94560,color:#fff
+    classDef storage fill:#0f3460,stroke:#16213e,color:#fff
+    classDef app fill:#533483,stroke:#e94560,color:#fff
+    classDef db fill:#0a4d3c,stroke:#00b894,color:#fff
 ```
-┌─────────────┐     ┌──────────────────────────────┐     ┌─────────────────────┐
-│  YAML Config │────►│      Simulation Engine        │────►│  WebSocket Server   │
-│  (scenarios) │     │  tick loop · state machine    │     │  (FastAPI + uvicorn)│
-└─────────────┘     │  spatial routing · resources  │     └────────┬────────────┘
-                    └──────────────┬───────────────┘              │
-                                   │                              ▼
-                                   ▼                     ┌─────────────────┐
-                    ┌──────────────────────────┐         │  React Dashboard │
-                    │        Recorder           │         │  (Vite + Tailwind)│
-                    │  transitions · positions  │         └─────────────────┘
-                    └──────────────┬───────────┘
-                                   │
-                    ┌──────────────▼───────────┐
-                    │   Lakebase (PostgreSQL)   │
-                    │   live simulation state   │
-                    └──────────────┬───────────┘
-                                   │ sync
-                    ┌──────────────▼───────────┐
-                    │   Lakehouse (Delta Lake)  │
-                    │   historical telemetry    │
-                    └──────────────┬───────────┘
-                                   │
-                    ┌──────────────▼───────────┐
-                    │   ML Training (MLflow)    │
-                    │   predictive maintenance  │
-                    │   bottleneck detection    │
-                    └──────────────────────────┘
-```
+
+### Data Flow Summary
+
+| Flow | Source | Destination | Purpose |
+|------|--------|-------------|---------|
+| **Config ingest** | UC Volume (`raw_data/configs/`) | App bundle (`configs/`) | Equipment definitions, process params, facility layouts |
+| **Simulation persist** | Engine (per scenario load) | Lakebase `simulation_ticks` | 5,761 frames per 8h sim at 5s intervals |
+| **What-if persist** | User (via editor) | Lakebase `whatifs` | Saved deviation configurations |
+| **Report persist** | Comparison engine | Lakebase `reports` | KPI comparison reports (baseline vs what-ifs) |
+| **Scenario catalog** | App startup | Lakebase `scenarios` | All available configs with metadata |
+| **Historical sync** | Lakebase | Delta Lake (future) | Long-term telemetry for ML training |
 
 ---
 
@@ -259,49 +301,66 @@ Only non-default values are stored. The Load button in the editor lists all save
 
 ## Databricks Platform Integration
 
-### Lakebase (PostgreSQL)
+### Unity Catalog — Governance & Assets
 
-Live simulation state for low-latency dashboard queries:
+| Object | Path | Purpose |
+|--------|------|---------|
+| **Catalog** | `serverless_stable_3n0ihb_catalog` | Workspace catalog |
+| **Schema** | `industrial_digital_twin` | Application schema |
+| **Volume** | `raw_data` | Asset storage |
+| **Volume files** | `raw_data/configs/*.yaml` | Equipment definitions, process parameters, facility layouts |
+
+The UC Volume serves as the **design-time source of truth** for simulation configs. DABs syncs these to the app bundle at deploy time. At runtime, the app reads from its local `configs/` directory (since UC Volume FUSE is not available inside Databricks Apps).
+
+### Lakebase (PostgreSQL) — Live State
+
+Autoscale Lakebase project with OAuth M2M authentication:
 
 ```sql
--- Entity positions (updated every tick)
-CREATE TABLE sim_entities (
-    entity_id       TEXT PRIMARY KEY,
-    entity_type     TEXT,
-    state           TEXT,
-    x               FLOAT,
-    y               FLOAT,
-    current_location TEXT,
-    properties      JSONB,
-    updated_at      TIMESTAMPTZ DEFAULT NOW()
+-- Available simulation scenarios (populated on startup)
+CREATE TABLE scenarios (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    config      JSONB,
+    created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Resource/machine status
-CREATE TABLE sim_resources (
-    resource_id     TEXT PRIMARY KEY,
-    type            TEXT,
-    status          TEXT,
-    occupants       TEXT[],
-    queue_depth     INT,
-    total_busy_time FLOAT,
-    updated_at      TIMESTAMPTZ DEFAULT NOW()
+-- Full simulation frame data (5,761 frames per 8h sim)
+CREATE TABLE simulation_ticks (
+    id          SERIAL PRIMARY KEY,
+    scenario_id TEXT NOT NULL,
+    whatif_name TEXT,
+    tick_index  INT NOT NULL,
+    sim_time    REAL NOT NULL,
+    data        JSONB NOT NULL,
+    created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Live metrics
-CREATE TABLE sim_metrics (
-    scenario_id         TEXT,
-    throughput_per_hour FLOAT,
-    wip_count           INT,
-    avg_utilization_pct FLOAT,
-    captured_at         TIMESTAMPTZ DEFAULT NOW()
+-- Saved what-if deviation configurations
+CREATE TABLE whatifs (
+    id          SERIAL PRIMARY KEY,
+    scenario_id TEXT NOT NULL,
+    slug        TEXT NOT NULL,
+    name        TEXT NOT NULL,
+    overrides   JSONB NOT NULL,
+    created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- KPI comparison reports (baseline vs what-ifs)
+CREATE TABLE reports (
+    id          SERIAL PRIMARY KEY,
+    scenario_id TEXT NOT NULL,
+    slug        TEXT NOT NULL,
+    name        TEXT NOT NULL,
+    report      JSONB NOT NULL,
+    created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 ```
 
-The application writes to Lakebase on every broadcast tick (~1s), giving the dashboard sub-second query latency.
+The app writes to Lakebase on every scenario load (full tick history) and on user actions (save what-if, save report). Query latency is 3-5ms.
 
-### Lakehouse (Delta Lake)
-
-Historical telemetry archived for long-term analytics and ML:
+### Lakehouse (Delta Lake) — Historical Telemetry (Future)
 
 | Table | Partition | Content |
 |-------|-----------|---------|
@@ -310,9 +369,9 @@ Historical telemetry archived for long-term analytics and ML:
 | `telemetry.events` | `scenario / run_id / event_type` | Machine events (start, complete, failure) |
 | `telemetry.resource_utilization` | `scenario / run_id / date` | Per-machine busy/idle time series |
 
-Data flows from Lakebase → Delta via **reverse ETL sync** (Databricks Lakebase Sync) or direct writes from the recorder module.
+Data flows from Lakebase → Delta via **reverse ETL sync** (Databricks Lakebase Sync).
 
-### ML & Model Training
+### ML & Model Training (Future)
 
 | Use Case | Features | Target | Approach |
 |----------|----------|--------|----------|
@@ -391,96 +450,89 @@ Static assets are output to `app/frontend/dist/`. The FastAPI backend serves the
 
 ---
 
-## Databricks App Deployment
+## Databricks App Deployment (DABs)
 
-### app.yaml
+This application is deployed via **Databricks Asset Bundles** (DABs) for reproducible, version-controlled deployments.
 
-```yaml
-command:
-  - uvicorn
-  - app.backend.main:app
-  - --host=0.0.0.0
-  - --port=8000
+### Bundle Structure
 
-env:
-  - name: SIM_CONFIG
-    value: assembly_line_3station
-  - name: SIM_SPEED
-    value: "60"
-  - name: SIM_CONFIGS_DIR
-    value: configs
-  - name: LAKEBASE_HOST
-    value: "${resources.lakebase.host}"
-  - name: LAKEBASE_PASSWORD
-    valueFrom: secret/lakebase-token
-
-resources:
-  - name: lakebase
-    type: lakebase-instance
+```
+databricks.yml          # Bundle config: sync rules, variables, targets
+resources/app.yml       # App resource: env vars, description
+app.yaml                # Runtime command: python startup.py
+startup.py              # Entry point with error handling
 ```
 
-### Deploy Steps
+### Quick Deploy
 
 ```bash
 # 1. Build frontend
 cd app/frontend && npm run build && cd ../..
 
-# 2. Upload to workspace volume
-databricks fs cp -r . /Volumes/catalog/schema/raw_data/digital-twin-app/
+# 2. Validate bundle
+databricks bundle validate -t dev
 
-# 3. Create/deploy the app
-databricks apps create --name industrial-digital-twin \
-  --source-code-path /Volumes/catalog/schema/raw_data/digital-twin-app
+# 3. Deploy (syncs files + creates/updates app)
+databricks bundle deploy -t dev
+
+# 4. Run (triggers new deployment)
+databricks bundle run industrial_digital_twin -t dev
 ```
 
-### Lakebase Setup
+### Post-Deploy: Grant Lakebase Access
+
+The app's service principal needs OAuth access to the Lakebase endpoint:
 
 ```bash
-# Create a provisioned PostgreSQL instance
-databricks lakebase create --name digital-twin-db --capacity CU_1
+# Add sql scope
+databricks apps update industrial-digital-twin-dev --json '{"user_api_scopes": ["sql"]}'
 
-# Generate OAuth token for app connection
-databricks lakebase generate-credential --instance digital-twin-db
+# Create Lakebase OAuth role (Python SDK)
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.postgres import *
+
+w = WorkspaceClient(profile='FEVM_SERVERLESS_STABLE')
+SP_ID = "<service_principal_client_id>"  # from: databricks apps get <name> | jq .service_principal_client_id
+
+w.postgres.create_role(
+    parent='projects/industrial-digital-twin/branches/production',
+    role=Role(spec=RoleRoleSpec(
+        auth_method=RoleAuthMethod.LAKEBASE_OAUTH_V1,
+        identity_type=RoleIdentityType.SERVICE_PRINCIPAL,
+        membership_roles=[RoleMembershipRole.DATABRICKS_SUPERUSER],
+        postgres_role=SP_ID,
+    )),
+    role_id=f'sp-{SP_ID[:8]}',
+)
 ```
 
-The application uses the Lakebase connection to persist live entity state and metrics for sub-second dashboard queries.
+See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the complete step-by-step guide including Lakebase project setup, table creation, and troubleshooting.
 
-### Lakehouse Setup
+### Environment Variables (managed by DABs)
 
-```sql
--- Create Unity Catalog objects
-CREATE CATALOG IF NOT EXISTS digital_twin;
-CREATE SCHEMA IF NOT EXISTS digital_twin.telemetry;
-
--- Historical tables (populated by DLT pipeline or direct recorder writes)
-CREATE TABLE digital_twin.telemetry.state_transitions (
-    scenario_id     STRING,
-    run_id          STRING,
-    sim_time        TIMESTAMP,
-    entity_id       STRING,
-    from_state      STRING,
-    to_state        STRING,
-    location        STRING
-) USING DELTA
-PARTITIONED BY (scenario_id, run_id);
-
-CREATE TABLE digital_twin.telemetry.position_snapshots (
-    scenario_id     STRING,
-    run_id          STRING,
-    sim_time        TIMESTAMP,
-    entity_id       STRING,
-    x               DOUBLE,
-    y               DOUBLE,
-    state           STRING
-) USING DELTA
-PARTITIONED BY (scenario_id, run_id);
-```
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `LAKEBASE_HOST` | `ep-*.database.*.cloud.databricks.com` | Lakebase endpoint hostname |
+| `LAKEBASE_PORT` | `5432` | PostgreSQL port |
+| `LAKEBASE_DATABASE` | `databricks_postgres` | Database name |
+| `LAKEBASE_SCHEMA` | `public` | Schema for tables |
+| `LAKEBASE_ENDPOINT_NAME` | `projects/.../endpoints/primary` | Full endpoint resource name for OAuth |
+| `LAKEBASE_USE_OAUTH` | `true` | Enable M2M OAuth credential flow |
+| `SIM_CONFIGS_DIR` | `configs` | Bundled config path (not Volume — FUSE unavailable in Apps) |
 
 ### Monitoring
 
-- App logs: `databricks apps get --name industrial-digital-twin --include-logs`
-- Simulation status: `GET /api/status`
-- WebSocket health: connection indicator in dashboard header
+```bash
+# App status
+databricks apps get industrial-digital-twin-dev --profile FEVM_SERVERLESS_STABLE
+
+# Live logs
+databricks apps logs industrial-digital-twin-dev --profile FEVM_SERVERLESS_STABLE
+
+# Health check (with auth)
+TOKEN=$(databricks auth token --profile FEVM_SERVERLESS_STABLE | jq -r '.access_token')
+curl -H "Authorization: Bearer $TOKEN" https://<app-url>/health
+```
 
 ---
 
