@@ -1,3 +1,19 @@
 command:
   - "python"
   - "startup.py"
+
+env:
+  - name: LAKEBASE_HOST
+    value: "ep-wispy-moon-d2uk1ozo.database.us-east-1.cloud.databricks.com"
+  - name: LAKEBASE_PORT
+    value: "5432"
+  - name: LAKEBASE_DATABASE
+    value: "databricks_postgres"
+  - name: LAKEBASE_SCHEMA
+    value: "public"
+  - name: LAKEBASE_ENDPOINT_NAME
+    value: "projects/industrial-digital-twin/branches/production/endpoints/primary"
+  - name: LAKEBASE_USE_OAUTH
+    value: "true"
+  - name: SIM_CONFIGS_DIR
+    value: "configs"
