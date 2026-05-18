@@ -112,7 +112,7 @@ export default function PlanBuilder({ onGenerate, onClose }: Props) {
   };
 
   return (
-    <div className="w-[480px] border-l border-slate-700 bg-slate-800 flex flex-col overflow-hidden">
+    <div className="w-80 border-l border-slate-700 bg-slate-800 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
         <h2 className="text-sm font-bold uppercase tracking-wide text-slate-200">New Scenario</h2>
@@ -123,7 +123,7 @@ export default function PlanBuilder({ onGenerate, onClose }: Props) {
         {/* Template picker */}
         <section>
           <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">Industry Template</label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-1.5">
             {INDUSTRY_TEMPLATES.map(t => (
               <button
                 key={t.id}
@@ -152,7 +152,7 @@ export default function PlanBuilder({ onGenerate, onClose }: Props) {
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="My Assembly Line"
-              className="w-full px-3 py-1.5 bg-slate-900 border border-slate-600 rounded text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-1.5 bg-slate-900 border border-slate-600 rounded text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-500"
             />
           </div>
           <div>
@@ -161,7 +161,7 @@ export default function PlanBuilder({ onGenerate, onClose }: Props) {
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="Station A → Station B → ..."
-              className="w-full px-3 py-1.5 bg-slate-900 border border-slate-600 rounded text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-1.5 bg-slate-900 border border-slate-600 rounded text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-500"
             />
           </div>
           <div className="flex gap-3">
@@ -171,7 +171,7 @@ export default function PlanBuilder({ onGenerate, onClose }: Props) {
                 value={entityType}
                 onChange={e => setEntityType(e.target.value)}
                 placeholder="part"
-                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-600 rounded text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-600 rounded text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-500"
               />
             </div>
             <div className="w-24">
@@ -191,7 +191,7 @@ export default function PlanBuilder({ onGenerate, onClose }: Props) {
               value={variants}
               onChange={e => setVariants(e.target.value)}
               placeholder="type_a, type_b, type_c"
-              className="w-full px-3 py-1.5 bg-slate-900 border border-slate-600 rounded text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-1.5 bg-slate-900 border border-slate-600 rounded text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-500"
             />
           </div>
         </section>
@@ -211,7 +211,7 @@ export default function PlanBuilder({ onGenerate, onClose }: Props) {
                 onChange={e => setFreeText(e.target.value)}
                 rows={4}
                 placeholder="Stamping (60s) → Welding (120s, σ=15s) → Painting (300s) → QC (45s)"
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded text-sm text-white placeholder:text-slate-500 font-mono focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded text-sm text-white placeholder:text-slate-400 font-mono focus:outline-none focus:border-blue-500"
               />
               <button
                 onClick={parseFreeText}
