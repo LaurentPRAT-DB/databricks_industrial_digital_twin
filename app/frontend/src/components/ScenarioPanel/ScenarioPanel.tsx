@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import WhatIfTab from './WhatIfTab';
 import ReportTab from './ReportTab';
 
@@ -61,26 +61,47 @@ export default function ScenarioPanel({ scenarioId, scenarioName, initialTab, on
   };
 
   const activeScenario = scenarios.find(s => s.active);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) setPickerOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [pickerOpen]);
 
   return (
     <div className="w-80 bg-slate-800 border-l border-slate-700 flex flex-col overflow-hidden">
       {/* Panel header with scenario picker */}
       <div className="px-4 py-3 border-b border-slate-700 shrink-0">
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <select
-              value={activeScenario?.id || ''}
-              onChange={e => handleScenarioChange(e.target.value)}
+          <div className="flex items-center gap-2 flex-1 min-w-0 relative" ref={pickerRef}>
+            <button
+              onClick={() => setPickerOpen(!pickerOpen)}
               disabled={loadingId !== null}
-              className="flex-1 min-w-0 bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-sm text-white font-semibold appearance-none cursor-pointer hover:border-slate-500 focus:border-blue-500 focus:outline-none disabled:opacity-50"
+              className="flex-1 min-w-0 bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-sm text-white font-semibold cursor-pointer hover:border-slate-500 focus:border-blue-500 focus:outline-none disabled:opacity-50 text-left truncate"
             >
-              {scenarios.length === 0 && (
-                <option value="">Loading...</option>
-              )}
-              {scenarios.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
+              {activeScenario?.name || 'Select scenario...'}
+              <span className="float-right text-slate-400 ml-1">&#9662;</span>
+            </button>
+            {pickerOpen && (
+              <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-slate-700 border border-slate-600 rounded shadow-xl max-h-60 overflow-y-auto">
+                {scenarios.map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => { handleScenarioChange(s.id); setPickerOpen(false); }}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-600 transition-colors ${
+                      s.active ? 'text-emerald-400 font-semibold bg-slate-600/50' : 'text-slate-200'
+                    }`}
+                  >
+                    {s.active && <span className="mr-1">&#10003;</span>}{s.name}
+                  </button>
+                ))}
+              </div>
+            )}
             <button
               onClick={onNewScenario}
               className="shrink-0 px-2 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-600/50 text-emerald-400 text-xs font-bold rounded transition-colors"

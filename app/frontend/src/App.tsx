@@ -10,10 +10,11 @@ import ScenarioPanel from './components/ScenarioPanel/ScenarioPanel';
 import PlanBuilder from './components/PlanBuilder/PlanBuilder';
 import ProcessInfo from './components/ProcessInfo/ProcessInfo';
 import PlaybackBar from './components/PlaybackBar/PlaybackBar';
-import StatusBar from './components/StatusBar/StatusBar';
+import { useLakebaseHealth } from './components/StatusBar/StatusBar';
 
 function App() {
   const sim = useSimulationReplay();
+  const health = useLakebaseHealth();
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
   const [showPanel, setShowPanel] = useState(false);
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
@@ -73,6 +74,14 @@ function App() {
                   <div className="text-[9px] text-slate-400">{c.label}</div>
                 </div>
               ))}
+              {health && (
+                <div className="flex items-center gap-1.5 ml-2 px-2 py-1 bg-slate-700/50 rounded">
+                  <span className={`inline-block w-2 h-2 rounded-full ${health.lakebase.connected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                  <span className={`text-[10px] font-medium ${health.lakebase.connected ? 'text-emerald-400' : 'text-red-400'}`}>
+                    LB {health.lakebase.connected ? `${health.lakebase.latency_ms}ms` : 'off'}
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -184,7 +193,6 @@ function App() {
           </div>
         )}
       </div>
-      <StatusBar />
     </div>
   );
 }

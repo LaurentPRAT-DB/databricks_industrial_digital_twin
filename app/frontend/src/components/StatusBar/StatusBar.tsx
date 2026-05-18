@@ -5,7 +5,7 @@ interface HealthStatus {
   lakebase: { connected: boolean; latency_ms?: number; host?: string };
 }
 
-export default function StatusBar() {
+export function useLakebaseHealth() {
   const [health, setHealth] = useState<HealthStatus | null>(null);
 
   useEffect(() => {
@@ -19,6 +19,12 @@ export default function StatusBar() {
     const id = setInterval(fetchHealth, 30000);
     return () => clearInterval(id);
   }, []);
+
+  return health;
+}
+
+export default function StatusBar() {
+  const health = useLakebaseHealth();
 
   if (!health) return null;
 
