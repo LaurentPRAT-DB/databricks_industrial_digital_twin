@@ -1,4 +1,4 @@
-import { useRef, useMemo, useEffect } from 'react';
+import { useRef, useMemo, useEffect, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Html, Line, useGLTF } from '@react-three/drei';
 import type { Mesh } from 'three';
@@ -85,8 +85,13 @@ function LocationModel({ resource, label, locations, machineIndex }: { resource:
   );
 }
 
-function EntitySphere({ entity, processStates }: { entity: Entity; processStates: string[] }) {
+function humanize(s: string): string {
+  return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function EntitySphere({ entity, processStates, labelMap }: { entity: Entity; processStates: string[]; labelMap: Map<string, string> }) {
   const meshRef = useRef<Mesh>(null);
+  const [hovered, setHovered] = useState(false);
   const targetPos = useMemo(() => toWorld(entity.x, entity.y), [entity.x, entity.y]);
 
   useFrame(() => {
@@ -100,9 +105,35 @@ function EntitySphere({ entity, processStates }: { entity: Entity; processStates
   const color = getStateColor(entity.state, processStates);
 
   return (
-    <mesh ref={meshRef} position={[targetPos[0], 0.5, targetPos[2]]}>
-      <sphereGeometry args={[0.6, 12, 12]} />
-      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.3} />
+    <mesh
+      ref={meshRef}
+      position={[targetPos[0], 0.5, targetPos[2]]}
+      onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
+      onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto'; }}
+    >
+      <sphereGeometry args={[hovered ? 0.9 : 0.6, 12, 12]} />
+      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={hovered ? 0.6 : 0.3} />
+      {hovered && (
+        <Html distanceFactor={25} position={[0, 2, 0]} center style={{ pointerEvents: 'none' }}>
+          <div className="bg-slate-900/95 border border-slate-600 rounded-lg px-3 py-2 shadow-xl text-xs whitespace-nowrap select-none">
+            <div className="font-bold text-white mb-1">{entity.id}</div>
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+              <span className="text-slate-300">{humanize(entity.state)}</span>
+            </div>
+            {entity.current_location && (
+              <div className="text-slate-400">
+                @ {labelMap.get(entity.current_location) || humanize(entity.current_location)}
+              </div>
+            )}
+            {entity.target_location && (
+              <div className="text-slate-500">
+                → {labelMap.get(entity.target_location) || humanize(entity.target_location)}
+              </div>
+            )}
+          </div>
+        </Html>
+      )}
     </mesh>
   );
 }
@@ -177,7 +208,7 @@ function Scene({ entities, resources, paths, locations }: Props) {
 
       {/* Entity spheres */}
       {entities.map((e) => (
-        <EntitySphere key={e.id} entity={e} processStates={processStates} />
+        <EntitySphere key={e.id} entity={e} processStates={processStates} labelMap={labelMap} />
       ))}
 
       <OrbitControls

@@ -41,7 +41,7 @@ export default function EntityList({ entities, locations, stateDescriptions }: P
   };
 
   return (
-    <div className="bg-slate-800 rounded-lg p-4 max-h-64 overflow-y-auto">
+    <div className="bg-slate-800 rounded-lg p-4">
       <h2 className="text-sm font-semibold text-slate-300 mb-3 uppercase tracking-wide">
         Active Entities ({entities.length})
       </h2>

@@ -5,7 +5,6 @@ import FloorPlan3D from './components/FloorPlan/FloorPlan3D';
 import MachineStatus from './components/MachineStatus/MachineStatus';
 import MachineDetailPanel from './components/MachineDetailPanel/MachineDetailPanel';
 import ProductionBoard from './components/ProductionBoard/ProductionBoard';
-import EntityList from './components/EntityList/EntityList';
 import ScenarioPanel from './components/ScenarioPanel/ScenarioPanel';
 import PlanBuilder from './components/PlanBuilder/PlanBuilder';
 import ProcessInfo from './components/ProcessInfo/ProcessInfo';
@@ -51,7 +50,7 @@ function App() {
   return (
     <div className="h-screen flex flex-col bg-slate-900 text-white">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-3 bg-slate-800 border-b border-slate-700">
+      <header className="relative flex items-center justify-between px-6 py-3 bg-slate-800 border-b border-slate-700">
         <div className="flex items-center gap-4">
           <span className="text-xl font-bold">{sim.simConfig.name || 'Digital Twin'}</span>
           {sim.whatifName && (
@@ -119,6 +118,11 @@ function App() {
             Scenarios
           </button>
         </div>
+        {health && (
+          <span className="absolute bottom-1 right-2 text-[9px] text-slate-500 font-mono">
+            v{health.build_number}
+          </span>
+        )}
       </header>
 
       {/* Main layout */}
@@ -189,7 +193,6 @@ function App() {
         ) : (
           <div className="w-80 p-4 space-y-4 overflow-y-auto border-l border-slate-700">
             <MachineStatus resources={sim.resources} locations={sim.locations} onSelectMachine={(id) => { setSelectedMachine(id); setShowPanel(false); }} />
-            <EntityList entities={sim.entities} locations={sim.locations} stateDescriptions={sim.stateDescriptions} />
           </div>
         )}
       </div>
