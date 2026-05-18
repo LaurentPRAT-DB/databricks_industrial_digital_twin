@@ -610,6 +610,15 @@ async def print_report(req: PrintReportRequest):
     return {"status": "ok", "filename": filename, "path": str(filepath)}
 
 
+@app.get("/api/reports/download/{scenario_id}/{filename}")
+async def download_report(scenario_id: str, filename: str):
+    """Serve a printed markdown report for viewing/download."""
+    filepath = REPORTS_DIR / scenario_id / filename
+    if not filepath.exists():
+        return JSONResponse({"error": "Not found"}, status_code=404)
+    return FileResponse(str(filepath), media_type="text/markdown", filename=filename)
+
+
 @app.get("/api/status")
 async def get_status():
     if not _simulation_frames:

@@ -18,11 +18,11 @@ function App() {
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
   const [panelTab, setPanelTab] = useState<'whatifs' | 'report'>('whatifs');
   const [selectedMachine, setSelectedMachine] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; url?: string } | null>(null);
 
-  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
+  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success', url?: string) => {
+    setToast({ message, type, url });
+    setTimeout(() => setToast(null), 5000);
   }, []);
 
   useEffect(() => {
@@ -116,9 +116,12 @@ function App() {
         {/* Floor plan (center) */}
         <div className="flex-1 flex flex-col overflow-hidden relative">
           {toast && (
-            <div className={`absolute top-3 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-lg text-xs font-medium animate-[fadeIn_0.2s] ${
-              toast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
-            }`}>
+            <div
+              onClick={() => { if (toast.url) window.open(toast.url, '_blank'); }}
+              className={`absolute top-3 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-lg text-xs font-medium animate-[fadeIn_0.2s] ${
+                toast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+              } ${toast.url ? 'cursor-pointer hover:brightness-110 underline decoration-white/40' : ''}`}
+            >
               {toast.message}
             </div>
           )}

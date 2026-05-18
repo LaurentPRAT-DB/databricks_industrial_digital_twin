@@ -36,7 +36,7 @@ interface Props {
   scenarioId: string;
   scenarioName: string;
   initialFilenames?: string[];
-  onToast?: (message: string, type: 'success' | 'error') => void;
+  onToast?: (message: string, type: 'success' | 'error', url?: string) => void;
 }
 
 const PARAM_LABELS: Record<string, { label: string; format: (v: number) => string }> = {
@@ -236,7 +236,8 @@ export default function ReportTab({ scenarioId, scenarioName, initialFilenames, 
       });
       if (res.ok) {
         const data = await res.json();
-        onToast?.(`Printed: ${data.filename}`, 'success');
+        const url = `/api/reports/download/${scenarioId}/${data.filename}`;
+        onToast?.(`Printed: ${data.filename}`, 'success', url);
       } else {
         onToast?.('Print failed', 'error');
       }

@@ -19,7 +19,7 @@ interface Props {
   onLoadScenario: (id: string) => void;
   onNewScenario: () => void;
   onClose: () => void;
-  onToast?: (message: string, type: 'success' | 'error') => void;
+  onToast?: (message: string, type: 'success' | 'error', url?: string) => void;
 }
 
 export default function ScenarioPanel({ scenarioId, scenarioName, initialTab, onSimulate, onLoadScenario, onNewScenario, onClose, onToast }: Props) {
