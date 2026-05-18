@@ -392,35 +392,88 @@ All models registered in **MLflow**, features served via **Feature Store**, infe
 
 ---
 
-## Developer Guide
+## Installation
 
 ### Prerequisites
 
-- Python >= 3.10
-- Node.js >= 18
-- [uv](https://docs.astral.sh/uv/) package manager
+| Tool | Version | Purpose |
+|------|---------|---------|
+| **Python** | >= 3.10 | Backend + simulation engine |
+| **Node.js** | >= 18 | Frontend build toolchain |
+| **[uv](https://docs.astral.sh/uv/)** | latest | Python package & project manager |
+| **git** | any | Source control |
 
-### Installation
+Optional (for Databricks deployment):
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| **[Databricks CLI](https://docs.databricks.com/dev-tools/cli/install.html)** | >= 0.230 | DABs deploy, app management |
+| **psycopg2** | included in deps | Lakebase connectivity (local dev with remote DB) |
+
+### Quick Start
 
 ```bash
-# Clone and install Python dependencies
+# 1. Clone the repository
+git clone <repo-url> databricks_industrial_digital_twin
 cd databricks_industrial_digital_twin
+
+# 2. Install Python dependencies
 uv sync
 
-# Install frontend dependencies
+# 3. Install frontend dependencies
+cd app/frontend && npm install && cd ../..
+
+# 4. Run the app locally
+./dev.sh
+```
+
+Open http://localhost:3000 — the simulation starts immediately with the default scenario (Smartphone Chassis Line).
+
+### Step-by-Step Setup
+
+#### Python Backend
+
+```bash
+# Install all Python dependencies (creates .venv automatically)
+uv sync
+
+# Verify the engine works
+uv run pytest tests/
+```
+
+This installs FastAPI, uvicorn, PyYAML, pydantic, and all simulation dependencies.
+
+#### Frontend (React + Vite)
+
+```bash
 cd app/frontend
 npm install
 cd ../..
 ```
 
+Dependencies: React 18, Tailwind CSS, React Three Fiber (3D view), Vite (bundler).
+
+#### Verify Installation
+
+```bash
+# Run the test suite (23 tests)
+uv run pytest tests/ -v
+
+# Start the backend only (should bind to :8000)
+uv run uvicorn app.backend.main:app --host 0.0.0.0 --port 8000
+
+# In another terminal, check the API responds
+curl http://localhost:8000/api/scenarios
+```
+
 ### Local Development
 
 ```bash
-# One command — starts backend (:8000) + frontend (:3000)
+# One command — starts backend (:8000) + frontend (:3000) with hot-reload
 ./dev.sh
 ```
 
-Or manually:
+Or manually in two terminals:
 
 ```bash
 # Terminal 1 — Backend (auto-reload on code changes)
@@ -455,6 +508,20 @@ Static assets are output to `app/frontend/dist/`. The FastAPI backend serves the
 | `SIM_CONFIG` | `assembly_line_3station` | Default scenario to load on startup |
 | `SIM_CONFIGS_DIR` | `configs` | Directory containing YAML scenario files |
 | `SIM_SPEED` | `60` | Simulation speed multiplier (60 = 1 sim-minute per real-second) |
+| `LAKEBASE_HOST` | *(unset)* | Lakebase endpoint hostname (optional — app works without it) |
+| `LAKEBASE_USE_OAUTH` | `false` | Enable OAuth for Lakebase (Databricks Apps only) |
+
+> **Note:** The app runs fully without Lakebase — simulation, playback, and what-if editing all work locally. Lakebase adds persistence for what-ifs, reports, and tick history across sessions.
+
+### Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| `ModuleNotFoundError: app.backend` | Run from project root, or set `PYTHONPATH=.` |
+| Frontend shows blank page | Ensure backend is running on :8000 (check proxy in `vite.config.ts`) |
+| `uv sync` fails | Ensure Python >= 3.10: `python --version` |
+| Tests fail with import errors | Run `uv sync` first to install all deps |
+| Port 8000 already in use | Kill existing process: `lsof -ti:8000 | xargs kill` |
 
 ---
 
