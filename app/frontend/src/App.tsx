@@ -120,7 +120,7 @@ function App() {
         </div>
         {health && (
           <span className="absolute bottom-1 right-2 text-[9px] text-slate-500 font-mono">
-            v{health.build_number}
+            v1.0.{health.build_number}
           </span>
         )}
       </header>
