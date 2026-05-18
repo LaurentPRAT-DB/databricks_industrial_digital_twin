@@ -48,3 +48,9 @@ targets:
     variables:
       lakebase_branch: "production"
       lakebase_host: "ep-wispy-moon-d2uk1ozo.database.us-east-1.cloud.databricks.com"
+  prod:
+    workspace:
+      profile: FEVM_SERVERLESS_PROD
+    variables:
+      lakebase_branch: "production"
+      lakebase_host: ""
