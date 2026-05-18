@@ -84,13 +84,13 @@ flowchart TB
 
 ## Dashboard Views
 
-The React dashboard provides two synchronized visualization modes, toggled via the header button:
+The React dashboard provides two synchronized visualization modes, toggled via the header button. The header displays real-time KPIs (Throughput, WIP, Completed, Utilization, Queue, Elapsed) and a Lakebase connectivity indicator when deployed.
 
 ### 2D Floor Plan (SVG)
 
 ![2D View](docs/screenshots/2d-view.png)
 
-Top-down schematic view with color-coded machines, conveyor paths, and animated entity dots. Shows queue depths, machine busy/idle state, and process flow at a glance.
+Top-down schematic view with color-coded machines, conveyor paths, and animated entity dots. The right sidebar shows machine status cards with cycle counts and utilization bars. Process flow chips at the bottom display each station's cycle time and count, and are clickable for detailed metrics.
 
 ### 3D Factory View (React Three Fiber)
 
@@ -100,7 +100,21 @@ Interactive 3D perspective with orbit camera controls (drag to rotate, scroll to
 
 Both views share the same data feed and stay perfectly in sync when switching.
 
+### Machine Detail Panel
+
+![Machine Detail](docs/screenshots/machine-detail.png)
+
+Click any machine (from the sidebar cards or process flow chips) to open a detail panel showing per-machine metrics: cycle count, queue depth, utilization bar (busy/idle/down breakdown), failure count, and total downtime.
+
+### Scenario Panel
+
+![Scenario Panel](docs/screenshots/scenario-panel.png)
+
+The unified scenario panel combines scenario selection, what-if configuration, and reporting in one place. A dropdown picker at the top lets you switch between scenarios. The What-Ifs tab shows saved deviation configurations with checkboxes for batch comparison. The Report tab runs KPI comparisons (baseline vs what-ifs) with save, print, and re-run actions.
+
 ### Playback Bar (Time Travel)
+
+![Playback Playing](docs/screenshots/playbar-playing.png)
 
 The simulation is **pre-computed on startup** — the entire run (default 8 hours of simulated time) is calculated server-side in seconds and delivered as a frame array to the frontend. This enables full time-travel capabilities:
 
@@ -179,13 +193,7 @@ The What-If system allows interactive exploration of equipment deviations — mo
 
 ### What-If Editor
 
-![What-If Editor](docs/screenshots/whatif-editor.png)
-
-The editor panel opens on the right side of the dashboard. Each machine gets its own card with deviation sliders and quick-apply presets.
-
-![What-If Sliders](docs/screenshots/whatif-sliders.png)
-
-Per-machine deviation sliders with preset buttons (Nominal, Aging, Quality Issue, Erratic). Modified parameters highlight in amber.
+The editor opens inside the Scenario Panel's What-Ifs tab. Click "+ New What-If" to create a deviation configuration, or "Edit" on an existing one. Each machine gets sliders for cycle time, failure rate, variability, and more. Quick-apply presets (Nominal, Aging, Quality Issue, Erratic) let you model common scenarios with one click. Modified parameters highlight in amber.
 
 ### How It Works
 
