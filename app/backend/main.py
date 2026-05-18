@@ -47,6 +47,7 @@ _active_scenario_id: str = ""
 _active_whatif_name: str | None = None
 _static_config: dict[str, Any] = {}
 _simulation_frames: list[dict[str, Any]] = []
+_printed_reports: dict[str, str] = {}
 
 
 def _precompute_simulation(scenario_id: str, overrides: dict[str, dict[str, float]] | None = None, whatif_name: str | None = None) -> None:
@@ -723,7 +724,8 @@ async def print_report(req: PrintReportRequest):
     if USE_LAKEBASE:
         ts = datetime.now().strftime("%Y_%m_%d_%H_%M")
         filename = f"{_slugify(req.scenario_name)}_report_{ts}.md"
-        return {"status": "ok", "filename": filename, "content": md_content}
+        _printed_reports[f"{req.scenario_id}/{filename}"] = md_content
+        return {"status": "ok", "filename": filename}
 
     dest = REPORTS_DIR / req.scenario_id
     dest.mkdir(parents=True, exist_ok=True)
@@ -739,6 +741,11 @@ async def print_report(req: PrintReportRequest):
 @app.get("/api/reports/download/{scenario_id}/{filename}")
 async def download_report(scenario_id: str, filename: str):
     """Serve a printed markdown report for viewing/download."""
+    key = f"{scenario_id}/{filename}"
+    if key in _printed_reports:
+        from starlette.responses import Response
+        return Response(content=_printed_reports[key], media_type="text/markdown",
+                        headers={"Content-Disposition": f'attachment; filename="{filename}"'})
     filepath = REPORTS_DIR / scenario_id / filename
     if not filepath.exists():
         return JSONResponse({"error": "Not found"}, status_code=404)
