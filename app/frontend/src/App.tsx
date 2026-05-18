@@ -116,11 +116,6 @@ function App() {
             Scenarios
           </button>
         </div>
-        {health && (
-          <span className="absolute bottom-1 right-2 text-[9px] text-slate-500 font-mono">
-            v1.0.{health.build_number}
-          </span>
-        )}
       </header>
 
       {/* Main layout */}
@@ -194,6 +189,11 @@ function App() {
           </div>
         )}
       </div>
+      {health && (
+        <span className="fixed bottom-2 right-3 text-[9px] text-slate-500 font-mono z-10">
+          v1.0.{health.build_number}
+        </span>
+      )}
     </div>
   );
 }
