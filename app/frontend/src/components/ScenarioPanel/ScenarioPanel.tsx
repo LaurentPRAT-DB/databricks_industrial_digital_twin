@@ -19,9 +19,10 @@ interface Props {
   onLoadScenario: (id: string) => void;
   onNewScenario: () => void;
   onClose: () => void;
+  onToast?: (message: string, type: 'success' | 'error') => void;
 }
 
-export default function ScenarioPanel({ scenarioId, scenarioName, initialTab, onSimulate, onLoadScenario, onNewScenario, onClose }: Props) {
+export default function ScenarioPanel({ scenarioId, scenarioName, initialTab, onSimulate, onLoadScenario, onNewScenario, onClose, onToast }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>(initialTab || 'whatifs');
   const [reportFilenames, setReportFilenames] = useState<string[]>([]);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
@@ -139,7 +140,7 @@ export default function ScenarioPanel({ scenarioId, scenarioName, initialTab, on
             onRunReport={handleRunReport}
           />
         ) : (
-          <ReportTab scenarioId={scenarioId} scenarioName={scenarioName} initialFilenames={reportFilenames} />
+          <ReportTab scenarioId={scenarioId} scenarioName={scenarioName} initialFilenames={reportFilenames} onToast={onToast} />
         )}
       </div>
     </div>

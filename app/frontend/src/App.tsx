@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSimulationReplay } from './hooks/useSimulationReplay';
 import FloorPlan from './components/FloorPlan/FloorPlan';
 import FloorPlan3D from './components/FloorPlan/FloorPlan3D';
@@ -18,6 +18,12 @@ function App() {
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
   const [panelTab, setPanelTab] = useState<'whatifs' | 'report'>('whatifs');
   const [selectedMachine, setSelectedMachine] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  }, []);
 
   useEffect(() => {
     if (sim.isFinished && sim.scenarioId) {
@@ -108,7 +114,14 @@ function App() {
       {/* Main layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Floor plan (center) */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          {toast && (
+            <div className={`absolute top-3 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-lg text-xs font-medium animate-[fadeIn_0.2s] ${
+              toast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+            }`}>
+              {toast.message}
+            </div>
+          )}
           <div className="flex-1 p-4">
             {viewMode === '2d' ? (
               <FloorPlan entities={sim.entities} resources={sim.resources} paths={sim.paths} locations={sim.locations} />
@@ -151,6 +164,7 @@ function App() {
             onLoadScenario={async () => { await sim.loadFrames(); setShowPanel(false); }}
             onNewScenario={() => { setShowPlanBuilder(true); setShowPanel(false); }}
             onClose={() => setShowPanel(false)}
+            onToast={showToast}
           />
         ) : selectedMachine ? (
           <MachineDetailPanel

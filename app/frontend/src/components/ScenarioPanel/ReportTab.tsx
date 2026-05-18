@@ -36,6 +36,7 @@ interface Props {
   scenarioId: string;
   scenarioName: string;
   initialFilenames?: string[];
+  onToast?: (message: string, type: 'success' | 'error') => void;
 }
 
 const PARAM_LABELS: Record<string, { label: string; format: (v: number) => string }> = {
@@ -74,7 +75,7 @@ const COLUMNS: { key: keyof Metrics; label: string; unit: string; higherIsBetter
   { key: 'total_queue_depth', label: 'Queue', unit: '', higherIsBetter: false },
 ];
 
-export default function ReportTab({ scenarioId, scenarioName, initialFilenames }: Props) {
+export default function ReportTab({ scenarioId, scenarioName, initialFilenames, onToast }: Props) {
   const [report, setReport] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState('');
@@ -83,7 +84,6 @@ export default function ReportTab({ scenarioId, scenarioName, initialFilenames }
   // Save state
   const [reportSuffix, setReportSuffix] = useState('');
   const [saving, setSaving] = useState(false);
-  const [saveFlash, setSaveFlash] = useState('');
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
 
   // Dirty tracking & saved reports
@@ -161,22 +161,19 @@ export default function ReportTab({ scenarioId, scenarioName, initialFilenames }
         return;
       }
       if (res.ok) {
-        setSaveFlash('Saved!');
+        onToast?.('Report saved', 'success');
         setDirty(false);
         fetchSavedReports();
-        setTimeout(() => setSaveFlash(''), 2000);
       } else {
         const err = await res.json();
-        setSaveFlash(err.error || 'Save failed');
-        setTimeout(() => setSaveFlash(''), 3000);
+        onToast?.(err.error || 'Save failed', 'error');
       }
     } catch (e) {
       console.error('Save report failed', e);
-      setSaveFlash('Save failed');
-      setTimeout(() => setSaveFlash(''), 3000);
+      onToast?.('Save failed', 'error');
     }
     setSaving(false);
-  }, [report, scenarioId, reportSuffix, scenarioName, defaultSuffix, fetchSavedReports]);
+  }, [report, scenarioId, reportSuffix, scenarioName, defaultSuffix, fetchSavedReports, onToast]);
 
   const doLoadReport = useCallback(async (filename: string) => {
     setConfirmLoad(null);
@@ -223,7 +220,6 @@ export default function ReportTab({ scenarioId, scenarioName, initialFilenames }
 
   // Print report
   const [printing, setPrinting] = useState(false);
-  const [printFlash, setPrintFlash] = useState('');
 
   const printReport = useCallback(async () => {
     if (!report) return;
@@ -240,18 +236,15 @@ export default function ReportTab({ scenarioId, scenarioName, initialFilenames }
       });
       if (res.ok) {
         const data = await res.json();
-        setPrintFlash(`Saved: ${data.filename}`);
-        setTimeout(() => setPrintFlash(''), 3000);
+        onToast?.(`Printed: ${data.filename}`, 'success');
       } else {
-        setPrintFlash('Print failed');
-        setTimeout(() => setPrintFlash(''), 3000);
+        onToast?.('Print failed', 'error');
       }
     } catch {
-      setPrintFlash('Print failed');
-      setTimeout(() => setPrintFlash(''), 3000);
+      onToast?.('Print failed', 'error');
     }
     setPrinting(false);
-  }, [report, scenarioId, scenarioName]);
+  }, [report, scenarioId, scenarioName, onToast]);
 
   // Saved reports list component (reused in empty state and after results)
   const savedReportsList = savedReports.length > 0 ? (
@@ -485,29 +478,17 @@ export default function ReportTab({ scenarioId, scenarioName, initialFilenames }
               <button
                 onClick={() => saveReport(false)}
                 disabled={saving}
-                className={`flex-1 py-1.5 text-[10px] font-bold rounded transition-colors uppercase tracking-wide ${
-                  saveFlash === 'Saved!'
-                    ? 'bg-green-600 text-white'
-                    : saveFlash
-                      ? 'bg-rose-600 text-white'
-                      : 'bg-purple-600 hover:bg-purple-500 text-white'
-                }`}
+                className="flex-1 py-1.5 text-[10px] font-bold rounded transition-colors uppercase tracking-wide bg-purple-600 hover:bg-purple-500 disabled:bg-slate-600 text-white"
               >
-                {saving ? 'Saving...' : saveFlash || 'Save Report'}
+                {saving ? 'Saving...' : 'Save Report'}
               </button>
               <button
                 onClick={printReport}
                 disabled={printing}
-                className={`px-3 py-1.5 text-[10px] font-bold rounded transition-colors ${
-                  printFlash && !printFlash.includes('failed')
-                    ? 'bg-green-600 text-white'
-                    : printFlash
-                      ? 'bg-rose-600 text-white'
-                      : 'bg-blue-600 hover:bg-blue-500 text-white'
-                }`}
+                className="px-3 py-1.5 text-[10px] font-bold rounded transition-colors bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 text-white"
                 title="Export as Markdown file"
               >
-                {printing ? '...' : printFlash || 'Print'}
+                {printing ? '...' : 'Print'}
               </button>
               <button
                 onClick={() => runReport()}
