@@ -19,4 +19,4 @@ resources:
           - name: LAKEBASE_USE_OAUTH
             value: "true"
           - name: SIM_CONFIGS_DIR
-            value: "/Volumes/serverless_stable_3n0ihb_catalog/industrial_digital_twin/raw_data/configs"
+            value: "configs"
