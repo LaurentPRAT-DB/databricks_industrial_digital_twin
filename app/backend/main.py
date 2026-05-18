@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+import threading
 import time as wall_time
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
@@ -30,6 +31,13 @@ WHATIF_DIR = CONFIGS_DIR / "whatif"
 REPORTS_DIR = CONFIGS_DIR / "reports"
 DEFAULT_CONFIG = os.getenv("SIM_CONFIG", "assembly_line_3station")
 SNAPSHOT_INTERVAL_S = int(os.getenv("SIM_SNAPSHOT_INTERVAL", "5"))
+
+USE_LAKEBASE = bool(os.getenv("LAKEBASE_HOST"))
+
+_build_number_file = Path(__file__).resolve().parent.parent.parent / "BUILD_NUMBER"
+BUILD_NUMBER = _build_number_file.read_text().strip() if _build_number_file.exists() else "dev"
+GIT_COMMIT_FILE = Path(__file__).resolve().parent.parent.parent / "GIT_COMMIT"
+GIT_COMMIT = GIT_COMMIT_FILE.read_text().strip() if GIT_COMMIT_FILE.exists() else "unknown"
 
 
 def _slugify(name: str) -> str:
@@ -138,10 +146,43 @@ def _precompute_simulation(scenario_id: str, overrides: dict[str, dict[str, floa
     logger.info("Pre-computed %d frames in %.1fs (%.0fx real-time)",
                 len(frames), elapsed, config.duration_hours * 3600 / max(elapsed, 0.001))
 
+    if USE_LAKEBASE:
+        from app.backend.services.lakebase_service import get_lakebase_service
+        lb = get_lakebase_service()
+        if lb:
+            lb.save_simulation_ticks(scenario_id, whatif_name, frames)
+
+
+_startup_ready = threading.Event()
+
+
+def _startup_worker():
+    """Run simulation precomputation in a background thread."""
+    try:
+        _precompute_simulation(DEFAULT_CONFIG)
+    except Exception as e:
+        logger.error("Background precomputation failed: %s", e, exc_info=True)
+    finally:
+        _startup_ready.set()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    _precompute_simulation(DEFAULT_CONFIG)
+    logger.info("Industrial Digital Twin — Build %s", BUILD_NUMBER)
+    try:
+        if USE_LAKEBASE:
+            from app.backend.services.lakebase_service import get_lakebase_service
+            lb = get_lakebase_service()
+            if lb:
+                lb.ensure_tables()
+                logger.info("Lakebase: CONNECTED (host=%s)", os.getenv("LAKEBASE_HOST"))
+            else:
+                logger.warning("Lakebase: UNAVAILABLE — falling back to file mode")
+    except Exception as e:
+        logger.error("Lakebase init error (non-fatal): %s", e, exc_info=True)
+    thread = threading.Thread(target=_startup_worker, daemon=True)
+    thread.start()
+    logger.info("Simulation precomputation started in background thread")
     yield
     logger.info("Shutting down")
 
@@ -158,6 +199,35 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/health")
+async def health_check():
+    lakebase_status = {"connected": False, "host": os.getenv("LAKEBASE_HOST")}
+    if USE_LAKEBASE:
+        try:
+            from app.backend.services.lakebase_service import get_lakebase_service
+            lb = get_lakebase_service()
+            if lb:
+                lakebase_status = lb.health_check()
+        except Exception as e:
+            lakebase_status["error"] = str(e)
+    return {
+        "status": "healthy",
+        "build_number": BUILD_NUMBER,
+        "lakebase": lakebase_status,
+    }
+
+
+
+
+@app.get("/api/version")
+async def get_version():
+    return {
+        "build_number": BUILD_NUMBER,
+        "git_commit": GIT_COMMIT,
+        "use_lakebase": USE_LAKEBASE,
+    }
 
 
 @app.get("/api/scenarios")
@@ -263,6 +333,7 @@ async def generate_scenario(req: GenerateScenarioRequest):
 
 @app.get("/api/simulation/frames")
 async def get_simulation_frames():
+    _startup_ready.wait(timeout=120)
     return {
         **_static_config,
         "frames": _simulation_frames,
@@ -327,6 +398,11 @@ async def save_whatif(req: SaveWhatIfRequest):
     slug = _slugify(name)
     if not slug:
         return JSONResponse(status_code=400, content={"error": "Invalid name"})
+    if USE_LAKEBASE:
+        from app.backend.services.lakebase_service import get_lakebase_service
+        lb = get_lakebase_service()
+        if lb and lb.save_whatif(req.scenario_id, slug, name, req.overrides):
+            return {"status": "saved", "filename": f"{slug}.json"}
     dest = WHATIF_DIR / req.scenario_id
     dest.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -342,6 +418,11 @@ async def save_whatif(req: SaveWhatIfRequest):
 
 @app.get("/api/whatif/list/{scenario_id}")
 async def list_whatifs(scenario_id: str):
+    if USE_LAKEBASE:
+        from app.backend.services.lakebase_service import get_lakebase_service
+        lb = get_lakebase_service()
+        if lb:
+            return {"items": lb.list_whatifs(scenario_id)}
     dest = WHATIF_DIR / scenario_id
     if not dest.exists():
         return {"items": []}
@@ -361,6 +442,15 @@ async def list_whatifs(scenario_id: str):
 
 @app.get("/api/whatif/load/{scenario_id}/{filename}")
 async def load_whatif(scenario_id: str, filename: str):
+    if USE_LAKEBASE:
+        from app.backend.services.lakebase_service import get_lakebase_service
+        lb = get_lakebase_service()
+        if lb:
+            slug = filename.replace(".json", "")
+            data = lb.load_whatif(scenario_id, slug)
+            if data:
+                return data
+            return JSONResponse(status_code=404, content={"error": "What-if not found"})
     filepath = WHATIF_DIR / scenario_id / filename
     if not filepath.exists():
         return JSONResponse(status_code=404, content={"error": "What-if not found"})
@@ -488,12 +578,22 @@ class SaveReportRequest(BaseModel):
 
 @app.get("/api/reports/check/{scenario_id}/{slug}")
 async def check_report_exists(scenario_id: str, slug: str):
+    if USE_LAKEBASE:
+        from app.backend.services.lakebase_service import get_lakebase_service
+        lb = get_lakebase_service()
+        if lb:
+            return {"exists": lb.check_report_exists(scenario_id, slug)}
     filepath = REPORTS_DIR / scenario_id / f"{slug}.json"
     return {"exists": filepath.exists()}
 
 
 @app.get("/api/reports/list/{scenario_id}")
 async def list_reports(scenario_id: str):
+    if USE_LAKEBASE:
+        from app.backend.services.lakebase_service import get_lakebase_service
+        lb = get_lakebase_service()
+        if lb:
+            return {"items": lb.list_reports(scenario_id)}
     dest = REPORTS_DIR / scenario_id
     if not dest.exists():
         return {"items": []}
@@ -514,6 +614,15 @@ async def list_reports(scenario_id: str):
 
 @app.get("/api/reports/load/{scenario_id}/{filename}")
 async def load_report(scenario_id: str, filename: str):
+    if USE_LAKEBASE:
+        from app.backend.services.lakebase_service import get_lakebase_service
+        lb = get_lakebase_service()
+        if lb:
+            slug = filename.replace(".json", "")
+            data = lb.load_report(scenario_id, slug)
+            if data:
+                return data
+            return JSONResponse(status_code=404, content={"error": "Report not found"})
     filepath = REPORTS_DIR / scenario_id / filename
     if not filepath.exists():
         return JSONResponse(status_code=404, content={"error": "Report not found"})
@@ -528,6 +637,15 @@ async def save_report(req: SaveReportRequest):
     slug = _slugify(name)
     if not slug:
         return JSONResponse(status_code=400, content={"error": "Invalid name"})
+    if USE_LAKEBASE:
+        from app.backend.services.lakebase_service import get_lakebase_service
+        lb = get_lakebase_service()
+        if lb:
+            ok, err = lb.save_report(req.scenario_id, slug, name, req.report, overwrite=req.overwrite)
+            if not ok and err == "already exists":
+                return JSONResponse(status_code=409, content={"error": "Report already exists", "filename": f"{slug}.json"})
+            if ok:
+                return {"status": "saved", "filename": f"{slug}.json"}
     dest = REPORTS_DIR / req.scenario_id
     dest.mkdir(parents=True, exist_ok=True)
     filepath = dest / f"{slug}.json"

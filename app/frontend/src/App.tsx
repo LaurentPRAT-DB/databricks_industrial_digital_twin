@@ -10,6 +10,7 @@ import ScenarioPanel from './components/ScenarioPanel/ScenarioPanel';
 import PlanBuilder from './components/PlanBuilder/PlanBuilder';
 import ProcessInfo from './components/ProcessInfo/ProcessInfo';
 import PlaybackBar from './components/PlaybackBar/PlaybackBar';
+import StatusBar from './components/StatusBar/StatusBar';
 
 function App() {
   const sim = useSimulationReplay();
@@ -183,6 +184,7 @@ function App() {
           </div>
         )}
       </div>
+      <StatusBar />
     </div>
   );
 }

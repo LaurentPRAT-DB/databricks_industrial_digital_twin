@@ -12,6 +12,9 @@ dependencies = [
     "pydantic>=2.5",
     "pyyaml>=6.0",
     "httpx>=0.26.0",
+    "psycopg2-binary>=2.9",
+    "databricks-sdk>=0.40.0",
+    "python-dotenv>=1.0",
 ]
 
 [project.optional-dependencies]

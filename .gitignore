@@ -28,6 +28,9 @@ app/frontend/dist/
 *.swo
 .DS_Store
 
+# Databricks
+.databricks/
+
 # Logs
 *.log
 

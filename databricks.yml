@@ -1,0 +1,50 @@
+bundle:
+  name: industrial-digital-twin
+
+sync:
+  include:
+    - app/backend/**
+    - app/frontend/dist/**
+    - src/**
+    - configs/*.yaml
+    - app.yaml
+    - startup.py
+    - requirements.txt
+    - pyproject.toml
+    - BUILD_NUMBER
+    - GIT_COMMIT
+  exclude:
+    - node_modules/**
+    - "*.pyc"
+    - __pycache__/**
+    - .venv/**
+    - .git/**
+    - .databricks/**
+    - app/frontend/src/**
+    - app/frontend/node_modules/**
+    - app/frontend/public/**
+    - app/frontend/*.config.*
+    - app/frontend/tsconfig.*
+    - app/frontend/package-lock.json
+    - tests/**
+    - configs/reports/**
+    - configs/whatif/**
+
+include:
+  - resources/*.yml
+
+variables:
+  lakebase_host:
+    default: "ep-wispy-moon-d2uk1ozo.database.us-east-1.cloud.databricks.com"
+  lakebase_branch:
+    default: "production"
+
+targets:
+  dev:
+    default: true
+    mode: development
+    workspace:
+      profile: FEVM_SERVERLESS_STABLE
+    variables:
+      lakebase_branch: "production"
+      lakebase_host: "ep-wispy-moon-d2uk1ozo.database.us-east-1.cloud.databricks.com"

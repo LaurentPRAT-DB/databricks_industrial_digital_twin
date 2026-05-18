@@ -1,0 +1,10 @@
+fastapi==0.135.2
+uvicorn==0.42.0
+websockets==16.0
+pydantic==2.12.5
+starlette==1.0.0
+pyyaml==6.0.2
+httpx==0.28.1
+psycopg2-binary==2.9.11
+databricks-sdk==0.102.0
+python-dotenv==1.2.2
