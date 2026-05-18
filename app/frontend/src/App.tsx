@@ -53,36 +53,34 @@ function App() {
       <header className="relative flex items-center justify-between px-6 py-3 bg-slate-800 border-b border-slate-700">
         <div className="flex items-center gap-4">
           <span className="text-xl font-bold">{sim.simConfig.name || 'Digital Twin'}</span>
-          {sim.whatifName && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-600/20 border border-amber-500/40 text-amber-400">
-              <span className="text-[10px]">&#9654;</span> {sim.whatifName}
-            </span>
-          )}
-          {!sim.whatifName && (
-            <div className="flex items-center gap-2 ml-2">
-              {[
-                { label: 'Throughput', value: `${sim.metrics.throughput_per_hour}/hr`, color: 'text-emerald-400' },
-                { label: 'WIP', value: `${sim.metrics.wip_count}`, color: 'text-blue-400' },
-                { label: 'Completed', value: `${sim.metrics.completed}`, color: 'text-amber-400' },
-                { label: 'Utilization', value: `${sim.metrics.avg_utilization_pct}%`, color: 'text-purple-400' },
-                { label: 'Queue', value: `${sim.metrics.total_queue_depth}`, color: 'text-rose-400' },
-                { label: 'Elapsed', value: `${sim.metrics.elapsed_hours}h`, color: 'text-slate-300' },
-              ].map(c => (
-                <div key={c.label} className="bg-slate-700/50 rounded px-2.5 py-1 text-center w-[72px]">
-                  <div className={`text-sm font-bold ${c.color} font-mono leading-tight`}>{c.value}</div>
-                  <div className="text-[9px] text-slate-400">{c.label}</div>
-                </div>
-              ))}
-              {health && (
-                <div className="flex items-center gap-1.5 ml-2 px-2 py-1 bg-slate-700/50 rounded">
-                  <span className={`inline-block w-2 h-2 rounded-full ${health.lakebase.connected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-                  <span className={`text-[10px] font-medium ${health.lakebase.connected ? 'text-emerald-400' : 'text-red-400'}`}>
-                    LB {health.lakebase.connected ? `${health.lakebase.latency_ms}ms` : 'off'}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
+          <div className="flex items-center gap-2 ml-2">
+            {[
+              { label: 'Throughput', value: `${sim.metrics.throughput_per_hour}/hr`, color: 'text-emerald-400' },
+              { label: 'WIP', value: `${sim.metrics.wip_count}`, color: 'text-blue-400' },
+              { label: 'Completed', value: `${sim.metrics.completed}`, color: 'text-amber-400' },
+              { label: 'Utilization', value: `${sim.metrics.avg_utilization_pct}%`, color: 'text-purple-400' },
+              { label: 'Queue', value: `${sim.metrics.total_queue_depth}`, color: 'text-rose-400' },
+              { label: 'Elapsed', value: `${sim.metrics.elapsed_hours}h`, color: 'text-slate-300' },
+            ].map(c => (
+              <div key={c.label} className="bg-slate-700/50 rounded px-2.5 py-1 text-center w-[72px]">
+                <div className={`text-sm font-bold ${c.color} font-mono leading-tight`}>{c.value}</div>
+                <div className="text-[9px] text-slate-400">{c.label}</div>
+              </div>
+            ))}
+            {sim.whatifName && (
+              <span className="inline-flex items-center gap-1 ml-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-600/20 border border-amber-500/40 text-amber-400">
+                <span className="text-[10px]">&#9654;</span> {sim.whatifName}
+              </span>
+            )}
+            {health && (
+              <div className="flex items-center gap-1.5 ml-2 px-2 py-1 bg-slate-700/50 rounded">
+                <span className={`inline-block w-2 h-2 rounded-full ${health.lakebase.connected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                <span className={`text-[10px] font-medium ${health.lakebase.connected ? 'text-emerald-400' : 'text-red-400'}`}>
+                  LB {health.lakebase.connected ? `${health.lakebase.latency_ms}ms` : 'off'}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex rounded-md overflow-hidden border border-slate-600">
