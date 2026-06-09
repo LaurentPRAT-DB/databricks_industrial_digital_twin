@@ -1,5 +1,6 @@
 """FastAPI application for Industrial Digital Twin."""
 
+import asyncio
 import json
 import logging
 import os
@@ -259,7 +260,7 @@ async def load_scenario(req: LoadScenarioRequest):
     config_path = CONFIGS_DIR / f"{req.id}.yaml"
     if not config_path.exists():
         return JSONResponse(status_code=404, content={"error": f"Scenario '{req.id}' not found"})
-    _precompute_simulation(req.id)
+    await asyncio.to_thread(_precompute_simulation, req.id)
     whatif_dir = WHATIF_DIR / req.id
     whatif_count = len(list(whatif_dir.glob("*.json"))) if whatif_dir.exists() else 0
     return {
@@ -323,7 +324,7 @@ async def generate_scenario(req: GenerateScenarioRequest):
         yaml.dump(config_dict, f, default_flow_style=False, sort_keys=False)
     logger.info("Generated scenario config: %s", config_path)
 
-    _precompute_simulation(slug)
+    await asyncio.to_thread(_precompute_simulation, slug)
     return {
         "status": "generated",
         "id": slug,
@@ -355,7 +356,7 @@ async def simulate_with_overrides(req: SimulateRequest):
     if not config_path.exists():
         return JSONResponse(status_code=404, content={"error": f"Scenario '{req.id}' not found"})
     whatif_name = req.name.strip() or "What-If"
-    _precompute_simulation(req.id, overrides=req.overrides if req.overrides else None, whatif_name=whatif_name)
+    await asyncio.to_thread(_precompute_simulation, req.id, req.overrides if req.overrides else None, whatif_name)
     return {
         "status": "computed",
         "id": req.id,
@@ -523,16 +524,9 @@ class RunReportRequest(BaseModel):
     filenames: list[str] | None = None
 
 
-@app.post("/api/scenarios/{scenario_id}/run-report")
-async def run_scenario_report(scenario_id: str, req: RunReportRequest | None = None):
-    config_path = CONFIGS_DIR / f"{scenario_id}.yaml"
-    if not config_path.exists():
-        return JSONResponse(status_code=404, content={"error": f"Scenario '{scenario_id}' not found"})
-
+def _build_report(scenario_id: str, selected: list[str] | None) -> dict[str, Any]:
+    """Run baseline + what-if simulations and return report data. Blocking."""
     t0 = wall_time.time()
-    selected = req.filenames if req and req.filenames else None
-    logger.info("Running report for scenario: %s (selected: %s)", scenario_id, selected or "all")
-
     baseline_metrics = _run_simulation_metrics(scenario_id)
 
     whatif_results = []
@@ -558,7 +552,6 @@ async def run_scenario_report(scenario_id: str, req: RunReportRequest | None = N
 
     elapsed = wall_time.time() - t0
     logger.info("Report complete: baseline + %d what-ifs in %.1fs", len(whatif_results), elapsed)
-
     return {
         "scenario_id": scenario_id,
         "baseline": {"name": "Baseline", "metrics": baseline_metrics},
@@ -566,6 +559,19 @@ async def run_scenario_report(scenario_id: str, req: RunReportRequest | None = N
         "run_count": 1 + len(whatif_results),
         "elapsed_s": round(elapsed, 2),
     }
+
+
+@app.post("/api/scenarios/{scenario_id}/run-report")
+async def run_scenario_report(scenario_id: str, req: RunReportRequest | None = None):
+    config_path = CONFIGS_DIR / f"{scenario_id}.yaml"
+    if not config_path.exists():
+        return JSONResponse(status_code=404, content={"error": f"Scenario '{scenario_id}' not found"})
+
+    selected = req.filenames if req and req.filenames else None
+    logger.info("Running report for scenario: %s (selected: %s)", scenario_id, selected or "all")
+
+    result = await asyncio.to_thread(_build_report, scenario_id, selected)
+    return result
 
 
 if not USE_LAKEBASE:

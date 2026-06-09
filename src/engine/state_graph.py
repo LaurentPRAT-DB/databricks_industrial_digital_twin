@@ -9,6 +9,9 @@ from src.engine.models import EntityState, SimulationContext
 class ConditionEvaluator:
     """Evaluates condition trees against entity + context."""
 
+    def __init__(self, rng: random.Random | None = None) -> None:
+        self._rng = rng or random.Random()
+
     def evaluate(self, cond: ConditionConfig, entity: EntityState, ctx: SimulationContext) -> bool:
         t = cond.type
         if t == "and":
@@ -30,7 +33,7 @@ class ConditionEvaluator:
         if t == "property_threshold":
             return self._property_threshold(cond, entity)
         if t == "random_failure":
-            return random.random() < (cond.probability_per_tick or 0.0)
+            return self._rng.random() < (cond.probability_per_tick or 0.0)
         return False
 
     def _duration_elapsed(self, entity: EntityState, ctx: SimulationContext) -> bool:
@@ -84,9 +87,9 @@ class ConditionEvaluator:
 class StateGraphExecutor:
     """Evaluates transitions and determines state changes for entities."""
 
-    def __init__(self, graph: StateGraphConfig) -> None:
+    def __init__(self, graph: StateGraphConfig, rng: random.Random | None = None) -> None:
         self.graph = graph
-        self.evaluator = ConditionEvaluator()
+        self.evaluator = ConditionEvaluator(rng)
 
     def evaluate(self, entity: EntityState, ctx: SimulationContext) -> TransitionConfig | None:
         """Find the highest-priority valid transition for this entity."""

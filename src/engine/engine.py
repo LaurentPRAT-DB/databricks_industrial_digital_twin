@@ -27,8 +27,7 @@ class SimulationEngine:
     def __init__(self, config: SimulationConfig) -> None:
         self.config = config
 
-        if config.seed is not None:
-            random.seed(config.seed)
+        self._rng = random.Random(config.seed)
 
         # Virtual clock
         self.sim_time = datetime.now(timezone.utc).replace(
@@ -45,7 +44,7 @@ class SimulationEngine:
         # State graph executors (one per graph type)
         self.state_graphs: dict[str, StateGraphExecutor] = {}
         for name, sg_config in config.state_graphs.items():
-            self.state_graphs[name] = StateGraphExecutor(sg_config)
+            self.state_graphs[name] = StateGraphExecutor(sg_config, rng=self._rng)
 
         # Initialize resources from facility locations
         self._init_resources()
@@ -171,14 +170,14 @@ class SimulationEngine:
             dev = self._get_deviation(location_id) if location_id else None
             if dev:
                 std *= dev.cycle_time_variability
-            base = random.gauss(mean, std)
+            base = self._rng.gauss(mean, std)
         elif d.distribution == "exponential":
             mean = d.params.get("mean", 60.0)
-            base = random.expovariate(1.0 / mean)
+            base = self._rng.expovariate(1.0 / mean)
         elif d.distribution == "uniform":
             lo = d.params.get("min", 0.0)
             hi = d.params.get("max", 60.0)
-            base = random.uniform(lo, hi)
+            base = self._rng.uniform(lo, hi)
         else:
             base = d.params.get("value", 0.0)
 
@@ -361,8 +360,8 @@ class SimulationEngine:
                     r.cycle_count += 1
 
                 # Failure injection: machine breaks down after processing
-                if dev and dev.failure_probability > 0 and random.random() < dev.failure_probability:
-                    repair_time = max(10.0, random.gauss(dev.failure_duration_mean, dev.failure_duration_std))
+                if dev and dev.failure_probability > 0 and self._rng.random() < dev.failure_probability:
+                    repair_time = max(10.0, self._rng.gauss(dev.failure_duration_mean, dev.failure_duration_std))
                     entity.breakdown_remaining = repair_time
                     if r and r.type == "machine":
                         r.failure_count += 1
@@ -375,7 +374,7 @@ class SimulationEngine:
                     return
 
                 # Quality defect: entity reworks at same station
-                if dev and dev.quality_defect_rate > 0 and random.random() < dev.quality_defect_rate:
+                if dev and dev.quality_defect_rate > 0 and self._rng.random() < dev.quality_defect_rate:
                     entity.state_duration = self._compute_state_duration(state_config, loc)
                     self.recorder.record_event(
                         self.sim_time, "quality_defect_rework",
