@@ -45,8 +45,5 @@ CREATE TABLE IF NOT EXISTS simulation_ticks (
 CREATE INDEX IF NOT EXISTS idx_ticks_scenario
     ON simulation_ticks(scenario_id, whatif_name, tick_index);
 
--- Allow any authenticated role (including app SP) to read/write
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO PUBLIC;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO PUBLIC;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO PUBLIC;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO PUBLIC;
+-- Grants are managed per-SP via scripts/grant_sp_permissions.sh
+-- Do NOT grant to PUBLIC — use targeted grants to the app service principal.

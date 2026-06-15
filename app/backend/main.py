@@ -44,6 +44,14 @@ GIT_COMMIT = GIT_COMMIT_FILE.read_text().strip() if GIT_COMMIT_FILE.exists() els
 def _slugify(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")[:64]
 
+
+def _safe_path(base: Path, *parts: str) -> Path:
+    """Resolve path and ensure it stays within the base directory."""
+    resolved = (base / Path(*parts)).resolve()
+    if not resolved.is_relative_to(base.resolve()):
+        raise ValueError("Path traversal detected")
+    return resolved
+
 _active_scenario_id: str = ""
 _active_whatif_name: str | None = None
 _static_config: dict[str, Any] = {}
@@ -257,7 +265,10 @@ class LoadScenarioRequest(BaseModel):
 
 @app.post("/api/scenarios/load")
 async def load_scenario(req: LoadScenarioRequest):
-    config_path = CONFIGS_DIR / f"{req.id}.yaml"
+    try:
+        config_path = _safe_path(CONFIGS_DIR, f"{req.id}.yaml")
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid scenario ID"})
     if not config_path.exists():
         return JSONResponse(status_code=404, content={"error": f"Scenario '{req.id}' not found"})
     await asyncio.to_thread(_precompute_simulation, req.id)
@@ -367,7 +378,10 @@ async def simulate_with_overrides(req: SimulateRequest):
 
 @app.get("/api/scenarios/{scenario_id}/parameters")
 async def get_scenario_parameters(scenario_id: str):
-    config_path = CONFIGS_DIR / f"{scenario_id}.yaml"
+    try:
+        config_path = _safe_path(CONFIGS_DIR, f"{scenario_id}.yaml")
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid scenario ID"})
     if not config_path.exists():
         return JSONResponse(status_code=404, content={"error": f"Scenario '{scenario_id}' not found"})
     config = load_config(str(config_path))
@@ -406,7 +420,10 @@ async def save_whatif(req: SaveWhatIfRequest):
         if lb and lb.save_whatif(req.scenario_id, slug, name, req.overrides):
             return {"status": "saved", "filename": f"{slug}.json"}
         return JSONResponse(status_code=503, content={"error": "Storage unavailable"})
-    dest = WHATIF_DIR / req.scenario_id
+    try:
+        dest = _safe_path(WHATIF_DIR, req.scenario_id)
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid scenario ID"})
     dest.mkdir(parents=True, exist_ok=True)
     payload = {
         "name": name,
@@ -426,7 +443,10 @@ async def list_whatifs(scenario_id: str):
         lb = get_lakebase_service()
         if lb:
             return {"items": lb.list_whatifs(scenario_id)}
-    dest = WHATIF_DIR / scenario_id
+    try:
+        dest = _safe_path(WHATIF_DIR, scenario_id)
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid scenario ID"})
     if not dest.exists():
         return {"items": []}
     items = []
@@ -454,7 +474,10 @@ async def load_whatif(scenario_id: str, filename: str):
             if data:
                 return data
             return JSONResponse(status_code=404, content={"error": "What-if not found"})
-    filepath = WHATIF_DIR / scenario_id / filename
+    try:
+        filepath = _safe_path(WHATIF_DIR, scenario_id, filename)
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid path"})
     if not filepath.exists():
         return JSONResponse(status_code=404, content={"error": "What-if not found"})
     data = json.loads(filepath.read_text())
@@ -563,7 +586,10 @@ def _build_report(scenario_id: str, selected: list[str] | None) -> dict[str, Any
 
 @app.post("/api/scenarios/{scenario_id}/run-report")
 async def run_scenario_report(scenario_id: str, req: RunReportRequest | None = None):
-    config_path = CONFIGS_DIR / f"{scenario_id}.yaml"
+    try:
+        config_path = _safe_path(CONFIGS_DIR, f"{scenario_id}.yaml")
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid scenario ID"})
     if not config_path.exists():
         return JSONResponse(status_code=404, content={"error": f"Scenario '{scenario_id}' not found"})
 
@@ -603,7 +629,10 @@ async def list_reports(scenario_id: str):
         lb = get_lakebase_service()
         if lb:
             return {"items": lb.list_reports(scenario_id)}
-    dest = REPORTS_DIR / scenario_id
+    try:
+        dest = _safe_path(REPORTS_DIR, scenario_id)
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid scenario ID"})
     if not dest.exists():
         return {"items": []}
     items = []
@@ -632,7 +661,10 @@ async def load_report(scenario_id: str, filename: str):
             if data:
                 return data
             return JSONResponse(status_code=404, content={"error": "Report not found"})
-    filepath = REPORTS_DIR / scenario_id / filename
+    try:
+        filepath = _safe_path(REPORTS_DIR, scenario_id, filename)
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid path"})
     if not filepath.exists():
         return JSONResponse(status_code=404, content={"error": "Report not found"})
     return json.loads(filepath.read_text())
@@ -656,7 +688,10 @@ async def save_report(req: SaveReportRequest):
             if ok:
                 return {"status": "saved", "filename": f"{slug}.json"}
         return JSONResponse(status_code=503, content={"error": "Storage unavailable"})
-    dest = REPORTS_DIR / req.scenario_id
+    try:
+        dest = _safe_path(REPORTS_DIR, req.scenario_id)
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid scenario ID"})
     dest.mkdir(parents=True, exist_ok=True)
     filepath = dest / f"{slug}.json"
     if filepath.exists() and not req.overwrite:
@@ -733,7 +768,10 @@ async def print_report(req: PrintReportRequest):
         _printed_reports[f"{req.scenario_id}/{filename}"] = md_content
         return {"status": "ok", "filename": filename}
 
-    dest = REPORTS_DIR / req.scenario_id
+    try:
+        dest = _safe_path(REPORTS_DIR, req.scenario_id)
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid scenario ID"})
     dest.mkdir(parents=True, exist_ok=True)
     ts = datetime.now().strftime("%Y_%m_%d_%H_%M")
     filename = f"{_slugify(req.scenario_name)}_report_{ts}.md"
@@ -752,7 +790,10 @@ async def download_report(scenario_id: str, filename: str):
         from starlette.responses import Response
         return Response(content=_printed_reports[key], media_type="text/markdown",
                         headers={"Content-Disposition": f'attachment; filename="{filename}"'})
-    filepath = REPORTS_DIR / scenario_id / filename
+    try:
+        filepath = _safe_path(REPORTS_DIR, scenario_id, filename)
+    except ValueError:
+        return JSONResponse({"error": "Invalid path"}, status_code=400)
     if not filepath.exists():
         return JSONResponse({"error": "Not found"}, status_code=404)
     return FileResponse(str(filepath), media_type="text/markdown", filename=filename)
@@ -780,7 +821,9 @@ if _frontend_dist.exists():
     async def serve_frontend(path: str):
         if path.startswith("api/"):
             return JSONResponse(status_code=404, content={"error": "Not found"})
-        file_path = _frontend_dist / path
+        file_path = (_frontend_dist / path).resolve()
+        if not file_path.is_relative_to(_frontend_dist.resolve()):
+            return JSONResponse(status_code=400, content={"error": "Invalid path"})
         if file_path.is_file():
             return FileResponse(file_path)
         return FileResponse(_frontend_dist / "index.html")
