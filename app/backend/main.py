@@ -13,11 +13,12 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.engine.loader import load_config
 from src.engine.engine import SimulationEngine
@@ -203,29 +204,52 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_cors_origins = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+_cors_origins = [o.strip() for o in _cors_origins if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_cors_origins or ["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
+
+REQUIRE_AUTH = bool(os.getenv("REQUIRE_AUTH"))
+_AUTH_BYPASS_PATHS = {"/health", "/api/version"}
+
+
+class DatabricksAuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if not REQUIRE_AUTH:
+            return await call_next(request)
+        path = request.url.path
+        if path in _AUTH_BYPASS_PATHS or not path.startswith("/api"):
+            return await call_next(request)
+        user_header = request.headers.get("X-Forwarded-Email") or request.headers.get("X-Forwarded-User")
+        if not user_header:
+            return JSONResponse(status_code=401, content={"error": "Authentication required"})
+        return await call_next(request)
+
+
+app.add_middleware(DatabricksAuthMiddleware)
 
 
 @app.get("/health")
 async def health_check():
-    lakebase_status = {"connected": False, "host": os.getenv("LAKEBASE_HOST")}
+    lakebase_connected = False
     if USE_LAKEBASE:
         try:
             from app.backend.services.lakebase_service import get_lakebase_service
             lb = get_lakebase_service()
             if lb:
-                lakebase_status = lb.health_check()
+                result = lb.health_check()
+                lakebase_connected = result.get("connected", False)
         except Exception as e:
-            lakebase_status["error"] = str(e)
+            logger.warning("Health check lakebase error: %s", e)
     return {
         "status": "healthy",
         "build_number": BUILD_NUMBER,
-        "lakebase": lakebase_status,
+        "lakebase_connected": lakebase_connected,
     }
 
 
@@ -290,14 +314,18 @@ class GenerateScenarioStation(BaseModel):
     model_3d: str | None = None
 
 
+MAX_DURATION_HOURS = float(os.getenv("SIM_MAX_DURATION_HOURS", "168"))
+MAX_STATIONS = int(os.getenv("SIM_MAX_STATIONS", "50"))
+
+
 class GenerateScenarioRequest(BaseModel):
     name: str
     description: str = ""
-    duration_hours: float = 8.0
+    duration_hours: float = Field(default=8.0, gt=0, le=MAX_DURATION_HOURS)
     entity_type: str = "part"
     entity_variants: list[str] = []
-    spawn_rate_per_hour: float = 20.0
-    stations: list[GenerateScenarioStation]
+    spawn_rate_per_hour: float = Field(default=20.0, gt=0, le=1000)
+    stations: list[GenerateScenarioStation] = Field(max_length=MAX_STATIONS)
     seed: int | None = None
 
 
