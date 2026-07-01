@@ -1,0 +1,249 @@
+{
+  "name": "Electric Vehicle Assembly Plant \u2014 Report 2026-05-17 22:27",
+  "scenario_id": "electric_vehicle_assembly_plant",
+  "report": {
+    "baseline": {
+      "name": "Baseline",
+      "metrics": {
+        "throughput_per_hour": 9.8,
+        "wip_count": 12,
+        "completed": 78,
+        "avg_utilization_pct": 24.6,
+        "total_queue_depth": 2,
+        "elapsed_hours": 8,
+        "avg_lead_time_s": 1652.3,
+        "machine_stats": {
+          "battery_cell_assembly": {
+            "cycle_count": 0,
+            "busy_pct": 0,
+            "idle_pct": 100,
+            "down_pct": 0,
+            "failure_count": 0
+          },
+          "battery_pack_assembly": {
+            "cycle_count": 48,
+            "busy_pct": 34.6,
+            "idle_pct": 65.4,
+            "down_pct": 0,
+            "failure_count": 0
+          },
+          "electric_motor_assembly": {
+            "cycle_count": 48,
+            "busy_pct": 32.6,
+            "idle_pct": 67.4,
+            "down_pct": 0,
+            "failure_count": 0
+          },
+          "power_electronics": {
+            "cycle_count": 48,
+            "busy_pct": 21.4,
+            "idle_pct": 78.6,
+            "down_pct": 0,
+            "failure_count": 0
+          },
+          "chassis_stamping": {
+            "cycle_count": 48,
+            "busy_pct": 9.9,
+            "idle_pct": 90.1,
+            "down_pct": 0,
+            "failure_count": 0
+          },
+          "body_welding": {
+            "cycle_count": 47,
+            "busy_pct": 18.4,
+            "idle_pct": 81.6,
+            "down_pct": 0,
+            "failure_count": 0
+          },
+          "painting": {
+            "cycle_count": 46,
+            "busy_pct": 52.5,
+            "idle_pct": 47.5,
+            "down_pct": 0,
+            "failure_count": 0
+          },
+          "drivetrain_integration": {
+            "cycle_count": 46,
+            "busy_pct": 23.7,
+            "idle_pct": 76.3,
+            "down_pct": 0,
+            "failure_count": 0
+          },
+          "battery_pack_install": {
+            "cycle_count": 45,
+            "busy_pct": 17.9,
+            "idle_pct": 82.1,
+            "down_pct": 0,
+            "failure_count": 0
+          },
+          "interior_assembly": {
+            "cycle_count": 43,
+            "busy_pct": 33.1,
+            "idle_pct": 66.9,
+            "down_pct": 0,
+            "failure_count": 0
+          },
+          "exterior_assembly": {
+            "cycle_count": 43,
+            "busy_pct": 22,
+            "idle_pct": 78,
+            "down_pct": 0,
+            "failure_count": 0
+          },
+          "final_assembly": {
+            "cycle_count": 42,
+            "busy_pct": 28,
+            "idle_pct": 72,
+            "down_pct": 0,
+            "failure_count": 0
+          },
+          "quality_inspection": {
+            "cycle_count": 41,
+            "busy_pct": 21.2,
+            "idle_pct": 78.8,
+            "down_pct": 0,
+            "failure_count": 0
+          },
+          "end_of_line_test": {
+            "cycle_count": 39,
+            "busy_pct": 28.6,
+            "idle_pct": 71.4,
+            "down_pct": 0,
+            "failure_count": 0
+          }
+        }
+      }
+    },
+    "whatifs": [
+      {
+        "name": "Electric Vehicle Assembly Plant \u2014 what-2",
+        "filename": "electric_vehicle_assembly_plant_what_2.json",
+        "overrides": {
+          "battery_cell_assembly": {
+            "quality_defect_rate": 0.1
+          },
+          "battery_pack_assembly": {
+            "cycle_time_variability": 3,
+            "failure_probability": 0.05
+          },
+          "electric_motor_assembly": {
+            "quality_defect_rate": 0.1
+          }
+        },
+        "metrics": {
+          "throughput_per_hour": 9.8,
+          "wip_count": 12,
+          "completed": 78,
+          "avg_utilization_pct": 23.6,
+          "total_queue_depth": 2,
+          "elapsed_hours": 8,
+          "avg_lead_time_s": 1647.7,
+          "machine_stats": {
+            "battery_cell_assembly": {
+              "cycle_count": 0,
+              "busy_pct": 0,
+              "idle_pct": 100,
+              "down_pct": 0,
+              "failure_count": 0
+            },
+            "battery_pack_assembly": {
+              "cycle_count": 48,
+              "busy_pct": 37.9,
+              "idle_pct": 62.1,
+              "down_pct": 0,
+              "failure_count": 0
+            },
+            "electric_motor_assembly": {
+              "cycle_count": 51,
+              "busy_pct": 30.2,
+              "idle_pct": 69.8,
+              "down_pct": 0,
+              "failure_count": 0
+            },
+            "power_electronics": {
+              "cycle_count": 48,
+              "busy_pct": 20.8,
+              "idle_pct": 79.2,
+              "down_pct": 0,
+              "failure_count": 0
+            },
+            "chassis_stamping": {
+              "cycle_count": 48,
+              "busy_pct": 9.5,
+              "idle_pct": 90.5,
+              "down_pct": 0,
+              "failure_count": 0
+            },
+            "body_welding": {
+              "cycle_count": 47,
+              "busy_pct": 17.1,
+              "idle_pct": 82.9,
+              "down_pct": 0,
+              "failure_count": 0
+            },
+            "painting": {
+              "cycle_count": 46,
+              "busy_pct": 48.3,
+              "idle_pct": 51.7,
+              "down_pct": 0,
+              "failure_count": 0
+            },
+            "drivetrain_integration": {
+              "cycle_count": 46,
+              "busy_pct": 23.2,
+              "idle_pct": 76.8,
+              "down_pct": 0,
+              "failure_count": 0
+            },
+            "battery_pack_install": {
+              "cycle_count": 44,
+              "busy_pct": 16.1,
+              "idle_pct": 83.9,
+              "down_pct": 0,
+              "failure_count": 0
+            },
+            "interior_assembly": {
+              "cycle_count": 43,
+              "busy_pct": 30.9,
+              "idle_pct": 69.1,
+              "down_pct": 0,
+              "failure_count": 0
+            },
+            "exterior_assembly": {
+              "cycle_count": 43,
+              "busy_pct": 21.2,
+              "idle_pct": 78.8,
+              "down_pct": 0,
+              "failure_count": 0
+            },
+            "final_assembly": {
+              "cycle_count": 41,
+              "busy_pct": 24.5,
+              "idle_pct": 75.5,
+              "down_pct": 0,
+              "failure_count": 0
+            },
+            "quality_inspection": {
+              "cycle_count": 40,
+              "busy_pct": 20.4,
+              "idle_pct": 79.6,
+              "down_pct": 0,
+              "failure_count": 0
+            },
+            "end_of_line_test": {
+              "cycle_count": 39,
+              "busy_pct": 29.6,
+              "idle_pct": 70.4,
+              "down_pct": 0,
+              "failure_count": 0
+            }
+          }
+        },
+        "saved_at": "2026-05-17T20:27:39.084698+00:00"
+      }
+    ],
+    "run_count": 2,
+    "elapsed_s": 1.23
+  },
+  "saved_at": "2026-05-17T20:28:05.459881+00:00"
+}

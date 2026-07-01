@@ -1,0 +1,442 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--gap:16px}
+.tab-row{display:flex;gap:4px;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:24px;padding-bottom:0}
+.tab{padding:8px 16px;font-size:13px;color:var(--color-text-secondary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;border-radius:4px 4px 0 0;transition:color .15s;user-select:none}
+.tab:hover{color:var(--color-text-primary)}
+.tab.active{color:var(--color-text-primary);border-bottom-color:var(--color-text-primary);font-weight:500}
+.pane{display:none}.pane.active{display:block}
+.section-title{font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--color-text-secondary);margin-bottom:12px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:3px 10px;border-radius:20px;border:0.5px solid var(--color-border-secondary);color:var(--color-text-secondary);margin:3px}
+.chip.blue{background:var(--color-background-info);color:var(--color-text-info);border-color:transparent}
+.chip.green{background:var(--color-background-success);color:var(--color-text-success);border-color:transparent}
+.chip.amber{background:var(--color-background-warning);color:var(--color-text-warning);border-color:transparent}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px;margin-bottom:12px}
+.card-title{font-size:13px;font-weight:500;margin-bottom:4px}
+.card-sub{font-size:12px;color:var(--color-text-secondary);line-height:1.5}
+.step-row{display:grid;grid-template-columns:32px 1fr;gap:12px;align-items:start;margin-bottom:16px}
+.step-num{width:32px;height:32px;border-radius:50%;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:var(--color-text-secondary);flex-shrink:0}
+.step-num.done{background:var(--color-background-success);color:var(--color-text-success);border-color:transparent}
+.connector{width:1px;height:16px;background:var(--color-border-secondary);margin:0 auto 0 15px}
+.eq-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.eq-card{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px;cursor:pointer;border:0.5px solid transparent;transition:border-color .15s}
+.eq-card:hover,.eq-card.sel{border-color:var(--color-border-primary)}
+.eq-card.sel{background:var(--color-background-primary)}
+.eq-icon{font-size:20px;margin-bottom:6px}
+.eq-name{font-size:13px;font-weight:500;margin-bottom:3px}
+.eq-detail{font-size:11px;color:var(--color-text-secondary);line-height:1.4}
+.sensor-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px}
+.sensor-row:last-child{border-bottom:none}
+.sensor-val{font-weight:500;font-family:var(--font-mono);font-size:12px}
+.badge{font-size:11px;padding:2px 8px;border-radius:20px}
+.badge.ok{background:var(--color-background-success);color:var(--color-text-success)}
+.badge.warn{background:var(--color-background-warning);color:var(--color-text-warning)}
+.param-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.param-label{font-size:13px;color:var(--color-text-secondary);min-width:140px}
+.param-val{font-size:13px;font-weight:500;min-width:48px;text-align:right;font-family:var(--font-mono)}
+.result-bar{height:8px;border-radius:4px;background:var(--color-border-tertiary);overflow:hidden;flex:1}
+.result-fill{height:100%;border-radius:4px;transition:width .4s}
+.fill-green{background:#3B6D11}
+.fill-amber{background:#BA7517}
+.fill-red{background:#A32D2D}
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.kpi{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px;text-align:center}
+.kpi-val{font-size:22px;font-weight:500;line-height:1}
+.kpi-label{font-size:11px;color:var(--color-text-secondary);margin-top:4px}
+.rdf-block{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px;font-size:11px;font-family:var(--font-mono);line-height:1.7;color:var(--color-text-secondary);margin-bottom:12px;overflow-x:auto}
+.rdf-block .pred{color:var(--color-text-info)}
+.rdf-block .subj{color:var(--color-text-primary);font-weight:500}
+.rdf-block .obj{color:var(--color-text-warning)}
+</style>
+
+<div style="padding:1rem 0">
+<div class="tab-row">
+  <div class="tab active" onclick="showTab('arch')">Architecture</div>
+  <div class="tab" onclick="showTab('floor')">Plant floor setup</div>
+  <div class="tab" onclick="showTab('whatif')">What-if scenarios</div>
+</div>
+
+<!-- ARCHITECTURE TAB -->
+<div id="pane-arch" class="pane active">
+  <div class="section-title">End-to-end data flow</div>
+  <svg width="100%" viewBox="0 0 680 460" role="img">
+    <title>Databricks industrial digital twin architecture</title>
+    <desc>Four-layer architecture: IoT sensors feeding Zerobus Ingest, then Lakeflow pipeline, then Delta Lake / Lakebase, then Digital Twin App</desc>
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+
+    <!-- Layer labels -->
+    <text class="ts" x="20" y="90" text-anchor="middle" transform="rotate(-90,20,90)" fill="var(--p)">Ingest</text>
+    <text class="ts" x="20" y="220" text-anchor="middle" transform="rotate(-90,20,220)" fill="var(--p)">Map</text>
+    <text class="ts" x="20" y="320" text-anchor="middle" transform="rotate(-90,20,320)" fill="var(--p)">Serve</text>
+    <text class="ts" x="20" y="415" text-anchor="middle" transform="rotate(-90,20,415)" fill="var(--p)">Visualize</text>
+
+    <!-- Divider lines -->
+    <line x1="40" y1="140" x2="660" y2="140" stroke="var(--b)" stroke-width="0.5" stroke-dasharray="4 4"/>
+    <line x1="40" y1="270" x2="660" y2="270" stroke="var(--b)" stroke-width="0.5" stroke-dasharray="4 4"/>
+    <line x1="40" y1="365" x2="660" y2="365" stroke="var(--b)" stroke-width="0.5" stroke-dasharray="4 4"/>
+
+    <!-- IoT Sensors row -->
+    <g class="node c-teal" onclick="sendPrompt('What IoT sensors are modeled in the digital twin repo?')">
+      <rect x="48" y="40" width="108" height="88" rx="8" stroke-width="0.5"/>
+      <text class="th" x="102" y="74" text-anchor="middle" dominant-baseline="central">CNC</text>
+      <text class="ts" x="102" y="94" text-anchor="middle" dominant-baseline="central">Machining</text>
+      <text class="ts" x="102" y="112" text-anchor="middle" dominant-baseline="central">vibration, temp</text>
+    </g>
+    <g class="node c-teal" onclick="sendPrompt('What sensors does the heat treatment station use?')">
+      <rect x="170" y="40" width="122" height="88" rx="8" stroke-width="0.5"/>
+      <text class="th" x="231" y="74" text-anchor="middle" dominant-baseline="central">Heat treatment</text>
+      <text class="ts" x="231" y="94" text-anchor="middle" dominant-baseline="central">Furnace station</text>
+      <text class="ts" x="231" y="112" text-anchor="middle" dominant-baseline="central">temp, pressure</text>
+    </g>
+    <g class="node c-teal" onclick="sendPrompt('What does the grinding station monitor?')">
+      <rect x="306" y="40" width="108" height="88" rx="8" stroke-width="0.5"/>
+      <text class="th" x="360" y="74" text-anchor="middle" dominant-baseline="central">Grinding</text>
+      <text class="ts" x="360" y="94" text-anchor="middle" dominant-baseline="central">Surface finish</text>
+      <text class="ts" x="360" y="112" text-anchor="middle" dominant-baseline="central">RPM, force</text>
+    </g>
+    <g class="node c-teal" onclick="sendPrompt('What does the assembly station in the digital twin track?')">
+      <rect x="428" y="40" width="108" height="88" rx="8" stroke-width="0.5"/>
+      <text class="th" x="482" y="74" text-anchor="middle" dominant-baseline="central">Assembly</text>
+      <text class="ts" x="482" y="94" text-anchor="middle" dominant-baseline="central">Ball bearing line</text>
+      <text class="ts" x="482" y="112" text-anchor="middle" dominant-baseline="central">torque, speed</text>
+    </g>
+    <g class="node c-purple" onclick="sendPrompt('What is Zerobus Ingest and how does it work?')">
+      <rect x="550" y="48" width="110" height="72" rx="8" stroke-width="0.5"/>
+      <text class="th" x="605" y="78" text-anchor="middle" dominant-baseline="central">Zerobus</text>
+      <text class="ts" x="605" y="97" text-anchor="middle" dominant-baseline="central">Ingest API</text>
+    </g>
+    <line x1="156" y1="84" x2="168" y2="84" class="arr" marker-end="url(#arrow)" stroke="var(--s)"/>
+    <line x1="292" y1="84" x2="304" y2="84" class="arr" marker-end="url(#arrow)" stroke="var(--s)"/>
+    <line x1="414" y1="84" x2="426" y2="84" class="arr" marker-end="url(#arrow)" stroke="var(--s)"/>
+    <line x1="536" y1="84" x2="548" y2="84" class="arr" marker-end="url(#arrow)" stroke="var(--s)"/>
+
+    <!-- Ingestion layer connector -->
+    <line x1="605" y1="120" x2="605" y2="150" class="arr" marker-end="url(#arrow)" stroke="var(--s)"/>
+
+    <!-- Mapping layer -->
+    <g class="node c-blue" onclick="sendPrompt('How does Lakeflow Declarative Pipelines work in the digital twin?')">
+      <rect x="48" y="152" width="210" height="96" rx="8" stroke-width="0.5"/>
+      <text class="th" x="153" y="186" text-anchor="middle" dominant-baseline="central">Lakeflow pipeline</text>
+      <text class="ts" x="153" y="206" text-anchor="middle" dominant-baseline="central">Bronze → Silver</text>
+      <text class="ts" x="153" y="222" text-anchor="middle" dominant-baseline="central">spark-r2r RDF mapping</text>
+    </g>
+    <g class="node c-blue" onclick="sendPrompt('What is the RDF twin model and how do IRIs work?')">
+      <rect x="272" y="152" width="200" height="96" rx="8" stroke-width="0.5"/>
+      <text class="th" x="372" y="186" text-anchor="middle" dominant-baseline="central">RDF twin model</text>
+      <text class="ts" x="372" y="206" text-anchor="middle" dominant-baseline="central">Ontology + IRIs</text>
+      <text class="ts" x="372" y="222" text-anchor="middle" dominant-baseline="central">semantic triples</text>
+    </g>
+    <g class="node c-blue" onclick="sendPrompt('What is the twin graph vs twin model?')">
+      <rect x="486" y="152" width="174" height="96" rx="8" stroke-width="0.5"/>
+      <text class="th" x="573" y="186" text-anchor="middle" dominant-baseline="central">Twin graph</text>
+      <text class="ts" x="573" y="206" text-anchor="middle" dominant-baseline="central">Live sensor data</text>
+      <text class="ts" x="573" y="222" text-anchor="middle" dominant-baseline="central">Delta Lake tables</text>
+    </g>
+    <line x1="258" y1="200" x2="270" y2="200" class="arr" marker-end="url(#arrow)" stroke="var(--s)"/>
+    <line x1="472" y1="200" x2="484" y2="200" class="arr" marker-end="url(#arrow)" stroke="var(--s)"/>
+
+    <!-- Serving layer -->
+    <line x1="573" y1="248" x2="573" y2="278" class="arr" marker-end="url(#arrow)" stroke="var(--s)"/>
+    <g class="node c-amber" onclick="sendPrompt('How does Lakebase sync work for low-latency sensor queries?')">
+      <rect x="100" y="280" width="200" height="72" rx="8" stroke-width="0.5"/>
+      <text class="th" x="200" y="308" text-anchor="middle" dominant-baseline="central">Lakebase (PostgreSQL)</text>
+      <text class="ts" x="200" y="326" text-anchor="middle" dominant-baseline="central">Synced table, sub-second</text>
+    </g>
+    <g class="node c-amber" onclick="sendPrompt('How does Unity Catalog govern the digital twin data?')">
+      <rect x="370" y="280" width="260" height="72" rx="8" stroke-width="0.5"/>
+      <text class="th" x="500" y="308" text-anchor="middle" dominant-baseline="central">Unity Catalog</text>
+      <text class="ts" x="500" y="326" text-anchor="middle" dominant-baseline="central">Governance, grants, lineage</text>
+    </g>
+    <line x1="230" y1="278" x2="120" y2="278" stroke="var(--s)" stroke-width="1" fill="none" marker-end="url(#arrow)"/>
+
+    <!-- App layer -->
+    <line x1="200" y1="352" x2="200" y2="374" class="arr" marker-end="url(#arrow)" stroke="var(--s)"/>
+    <line x1="500" y1="352" x2="500" y2="374" class="arr" marker-end="url(#arrow)" stroke="var(--s)"/>
+    <g class="node c-coral" onclick="sendPrompt('What does the Databricks Apps digital twin visualization show?')">
+      <rect x="60" y="375" width="240" height="68" rx="8" stroke-width="0.5"/>
+      <text class="th" x="180" y="403" text-anchor="middle" dominant-baseline="central">Digital twin app</text>
+      <text class="ts" x="180" y="423" text-anchor="middle" dominant-baseline="central">Knowledge graph UI (Databricks Apps)</text>
+    </g>
+    <g class="node c-coral" onclick="sendPrompt('How are what-if scenarios run in the digital twin?')">
+      <rect x="376" y="375" width="244" height="68" rx="8" stroke-width="0.5"/>
+      <text class="th" x="498" y="403" text-anchor="middle" dominant-baseline="central">What-if simulations</text>
+      <text class="ts" x="498" y="423" text-anchor="middle" dominant-baseline="central">Scenario engine + ML models</text>
+    </g>
+  </svg>
+
+  <div style="margin-top:16px">
+    <div class="section-title">Key technologies</div>
+    <div>
+      <span class="chip blue"><i class="ti ti-bolt" aria-hidden="true"></i>Zerobus Ingest</span>
+      <span class="chip blue"><i class="ti ti-git-branch" aria-hidden="true"></i>Lakeflow Pipelines</span>
+      <span class="chip blue"><i class="ti ti-topology-star" aria-hidden="true"></i>RDF / spark-r2r</span>
+      <span class="chip amber"><i class="ti ti-database" aria-hidden="true"></i>Delta Lake</span>
+      <span class="chip amber"><i class="ti ti-server" aria-hidden="true"></i>Lakebase</span>
+      <span class="chip green"><i class="ti ti-shield-check" aria-hidden="true"></i>Unity Catalog</span>
+      <span class="chip"><i class="ti ti-apps" aria-hidden="true"></i>Databricks Apps</span>
+      <span class="chip"><i class="ti ti-brain" aria-hidden="true"></i>MLflow / AutoML</span>
+    </div>
+  </div>
+</div>
+
+<!-- PLANT FLOOR TAB -->
+<div id="pane-floor" class="pane">
+  <div class="section-title">Select equipment to model</div>
+  <div class="eq-grid" id="eq-grid">
+    <div class="eq-card sel" onclick="selectEq(this,'cnc')" data-id="cnc">
+      <div class="eq-icon"><i class="ti ti-tool" style="font-size:20px;color:var(--color-text-secondary)" aria-hidden="true"></i></div>
+      <div class="eq-name">CNC machining center</div>
+      <div class="eq-detail">Shapes inner/outer rings · vibration, temperature, RPM sensors</div>
+    </div>
+    <div class="eq-card" onclick="selectEq(this,'furnace')" data-id="furnace">
+      <div class="eq-icon"><i class="ti ti-flame" style="font-size:20px;color:var(--color-text-secondary)" aria-hidden="true"></i></div>
+      <div class="eq-name">Heat treatment furnace</div>
+      <div class="eq-detail">Hardens rings · thermocouple, pressure, atmosphere sensors</div>
+    </div>
+    <div class="eq-card" onclick="selectEq(this,'grinder')" data-id="grinder">
+      <div class="eq-icon"><i class="ti ti-circle" style="font-size:20px;color:var(--color-text-secondary)" aria-hidden="true"></i></div>
+      <div class="eq-name">Grinding & polishing</div>
+      <div class="eq-detail">Surface finish · force, RPM, coolant flow sensors</div>
+    </div>
+    <div class="eq-card" onclick="selectEq(this,'assembly')" data-id="assembly">
+      <div class="eq-icon"><i class="ti ti-components" style="font-size:20px;color:var(--color-text-secondary)" aria-hidden="true"></i></div>
+      <div class="eq-name">Assembly station</div>
+      <div class="eq-detail">Inserts balls + retainer · torque, displacement, vision sensors</div>
+    </div>
+  </div>
+
+  <div class="section-title">RDF twin model snippet</div>
+  <div class="rdf-block" id="rdf-snippet">
+    <span class="subj">:CNCMachine_01</span> <span class="pred">rdf:type</span> <span class="obj">dt:Equipment</span> ;<br>
+    &nbsp;&nbsp;<span class="pred">dt:hasName</span> <span class="obj">"CNC Machining Center 01"</span> ;<br>
+    &nbsp;&nbsp;<span class="pred">dt:locatedIn</span> <span class="obj">:PlantFloor_A</span> ;<br>
+    &nbsp;&nbsp;<span class="pred">dt:hasSensor</span> <span class="obj">:VibrationSensor_01</span> ,<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="obj">:TempSensor_01</span> ,<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="obj">:RPMSensor_01</span> .<br>
+    <br>
+    <span class="subj">:VibrationSensor_01</span> <span class="pred">dt:unit</span> <span class="obj">"mm/s"</span> ;<br>
+    &nbsp;&nbsp;<span class="pred">dt:threshold</span> <span class="obj">"8.0"^^xsd:float</span> .
+  </div>
+
+  <div class="section-title">Live sensor readings</div>
+  <div class="card" id="sensor-panel">
+    <div class="sensor-row"><span>Vibration</span><span class="sensor-val" id="sv1">—</span><span class="badge ok" id="sb1">OK</span></div>
+    <div class="sensor-row"><span>Temperature (°C)</span><span class="sensor-val" id="sv2">—</span><span class="badge ok" id="sb2">OK</span></div>
+    <div class="sensor-row"><span>Spindle RPM</span><span class="sensor-val" id="sv3">—</span><span class="badge ok" id="sb3">OK</span></div>
+    <div class="sensor-row"><span>Current draw (A)</span><span class="sensor-val" id="sv4">—</span><span class="badge ok" id="sb4">OK</span></div>
+  </div>
+
+  <div class="section-title">Setup workflow</div>
+  <div>
+    <div class="step-row">
+      <div class="step-num done">1</div>
+      <div class="card-title" style="padding-top:6px">Edit <code style="font-size:11px;background:var(--color-background-secondary);padding:1px 5px;border-radius:4px">0-Parameters.ipynb</code> — workspace URLs, credentials, table paths</div>
+    </div>
+    <div class="connector"></div>
+    <div class="step-row">
+      <div class="step-num done">2</div>
+      <div class="card-title" style="padding-top:6px">Define equipment in <code style="font-size:11px;background:var(--color-background-secondary);padding:1px 5px;border-radius:4px">twin_model.ttl</code> using RDF triples (IRI per machine, sensor, relationship)</div>
+    </div>
+    <div class="connector"></div>
+    <div class="step-row">
+      <div class="step-num">3</div>
+      <div class="card-title" style="padding-top:6px">Run <code style="font-size:11px;background:var(--color-background-secondary);padding:1px 5px;border-radius:4px">1-Ingest.ipynb</code> — start Zerobus Ingest endpoint; wire up sensor simulator or real OT source</div>
+    </div>
+    <div class="connector"></div>
+    <div class="step-row">
+      <div class="step-num">4</div>
+      <div class="card-title" style="padding-top:6px">Run <code style="font-size:11px;background:var(--color-background-secondary);padding:1px 5px;border-radius:4px">2-Map.ipynb</code> — Lakeflow pipeline maps raw telemetry to RDF triples via spark-r2r</div>
+    </div>
+    <div class="connector"></div>
+    <div class="step-row">
+      <div class="step-num">5</div>
+      <div class="card-title" style="padding-top:6px">Run <code style="font-size:11px;background:var(--color-background-secondary);padding:1px 5px;border-radius:4px">3-Sync.ipynb</code> — synced Lakebase table for sub-second sensor queries</div>
+    </div>
+    <div class="connector"></div>
+    <div class="step-row">
+      <div class="step-num">6</div>
+      <div class="card-title" style="padding-top:6px">Run <code style="font-size:11px;background:var(--color-background-secondary);padding:1px 5px;border-radius:4px">5-Create-App.ipynb</code> — deploy Databricks App; inject backend URL into frontend bundles</div>
+    </div>
+  </div>
+</div>
+
+<!-- WHAT-IF TAB -->
+<div id="pane-whatif" class="pane">
+  <div class="section-title">Scenario parameters</div>
+  <div class="param-row">
+    <span class="param-label">Spindle speed offset</span>
+    <input type="range" min="-30" max="30" value="0" step="1" id="p-speed" oninput="runScenario()" style="flex:1">
+    <span class="param-val" id="v-speed">0%</span>
+  </div>
+  <div class="param-row">
+    <span class="param-label">Coolant temperature</span>
+    <input type="range" min="15" max="45" value="25" step="1" id="p-coolant" oninput="runScenario()" style="flex:1">
+    <span class="param-val" id="v-coolant">25°C</span>
+  </div>
+  <div class="param-row">
+    <span class="param-label">Furnace soak time</span>
+    <input type="range" min="60" max="240" value="120" step="10" id="p-soak" oninput="runScenario()" style="flex:1">
+    <span class="param-val" id="v-soak">120 min</span>
+  </div>
+  <div class="param-row">
+    <span class="param-label">Throughput rate</span>
+    <input type="range" min="60" max="140" value="100" step="5" id="p-thru" oninput="runScenario()" style="flex:1">
+    <span class="param-val" id="v-thru">100%</span>
+  </div>
+
+  <div class="section-title" style="margin-top:4px">Predicted outcomes</div>
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-val" id="kpi-oee">—</div><div class="kpi-label">OEE score</div></div>
+    <div class="kpi"><div class="kpi-val" id="kpi-defect">—</div><div class="kpi-label">Defect rate</div></div>
+    <div class="kpi"><div class="kpi-val" id="kpi-mtbf">—</div><div class="kpi-label">MTBF (hrs)</div></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+    <div>
+      <div class="section-title">Surface quality</div>
+      <div class="result-bar"><div class="result-fill" id="bar-quality"></div></div>
+      <div style="font-size:11px;color:var(--color-text-secondary);margin-top:4px" id="lbl-quality"></div>
+    </div>
+    <div>
+      <div class="section-title">Energy efficiency</div>
+      <div class="result-bar"><div class="result-fill" id="bar-energy"></div></div>
+      <div style="font-size:11px;color:var(--color-text-secondary);margin-top:4px" id="lbl-energy"></div>
+    </div>
+  </div>
+
+  <div class="section-title">How what-if works in the repo</div>
+  <div class="card">
+    <div class="card-title"><i class="ti ti-git-branch" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>1 · Clone the twin model</div>
+    <div class="card-sub">Create a parallel RDF graph namespace (e.g. <code style="font-size:11px;background:var(--color-background-secondary);padding:1px 5px;border-radius:4px">:scenario_A</code>) in the Delta table. All triples are copied; only the modified parameter triples are overwritten.</div>
+  </div>
+  <div class="card">
+    <div class="card-title"><i class="ti ti-adjustments" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>2 · Inject parameter overrides</div>
+    <div class="card-sub">SPARQL UPDATE or PySpark writes new sensor threshold triples. E.g. change <code style="font-size:11px;background:var(--color-background-secondary);padding:1px 5px;border-radius:4px">dt:setpoint</code> for spindle speed on <code style="font-size:11px;background:var(--color-background-secondary);padding:1px 5px;border-radius:4px">:CNCMachine_01</code> without touching the live twin.</div>
+  </div>
+  <div class="card">
+    <div class="card-title"><i class="ti ti-cpu" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>3 · Run simulation / ML inference</div>
+    <div class="card-sub">Feed the scenario graph into AutoML-trained predictive models (vibration → bearing life, temp deviation → defect rate). Results land in a scenario-scoped Delta table.</div>
+  </div>
+  <div class="card">
+    <div class="card-title"><i class="ti ti-chart-bar" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>4 · Compare in the app</div>
+    <div class="card-sub">The Databricks App can render multiple graph namespaces side-by-side. Metrics like OEE, MTBF, and defect rate are diffed against the live twin baseline.</div>
+  </div>
+
+  <button style="margin-top:8px;width:100%" onclick="sendPrompt('Show me the notebook code for creating a what-if scenario in the digital twin repo')">Show scenario notebook code ↗</button>
+</div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    const ids=['arch','floor','whatif'];
+    t.classList.toggle('active', ids[i]===id);
+  });
+  document.querySelectorAll('.pane').forEach(p=>{p.classList.remove('active')});
+  document.getElementById('pane-'+id).classList.add('active');
+  if(id==='floor') startSensors();
+  if(id==='whatif') runScenario();
+}
+
+var eqData = {
+  cnc:{
+    rdf:`<span class="subj">:CNCMachine_01</span> <span class="pred">rdf:type</span> <span class="obj">dt:Equipment</span> ;<br>&nbsp;&nbsp;<span class="pred">dt:hasName</span> <span class="obj">"CNC Machining Center 01"</span> ;<br>&nbsp;&nbsp;<span class="pred">dt:locatedIn</span> <span class="obj">:PlantFloor_A</span> ;<br>&nbsp;&nbsp;<span class="pred">dt:hasSensor</span> <span class="obj">:VibrationSensor_01</span> ,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="obj">:TempSensor_01</span> ,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="obj">:RPMSensor_01</span> .<br><br><span class="subj">:VibrationSensor_01</span> <span class="pred">dt:unit</span> <span class="obj">"mm/s"</span> ;<br>&nbsp;&nbsp;<span class="pred">dt:threshold</span> <span class="obj">"8.0"^^xsd:float</span> .`,
+    sensors:['Vibration (mm/s)','Temperature (°C)','Spindle RPM','Current draw (A)'],
+    ranges:[[1,9],[60,95],[3000,4800],[12,28]],
+    warn:[7,90,4600,26]
+  },
+  furnace:{
+    rdf:`<span class="subj">:Furnace_01</span> <span class="pred">rdf:type</span> <span class="obj">dt:Equipment</span> ;<br>&nbsp;&nbsp;<span class="pred">dt:hasName</span> <span class="obj">"Heat Treatment Furnace 01"</span> ;<br>&nbsp;&nbsp;<span class="pred">dt:locatedIn</span> <span class="obj">:PlantFloor_B</span> ;<br>&nbsp;&nbsp;<span class="pred">dt:hasSensor</span> <span class="obj">:Thermocouple_01</span> ,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="obj">:PressureSensor_01</span> .<br><br><span class="subj">:Thermocouple_01</span> <span class="pred">dt:unit</span> <span class="obj">"°C"</span> ;<br>&nbsp;&nbsp;<span class="pred">dt:setpoint</span> <span class="obj">"850.0"^^xsd:float</span> .`,
+    sensors:['Furnace temp (°C)','Chamber pressure (bar)','Atmosphere O₂ (%)','Door cycles'],
+    ranges:[[820,880],[1.0,1.5],[0.1,2.0],[0,5]],
+    warn:[875,1.45,1.8,4]
+  },
+  grinder:{
+    rdf:`<span class="subj">:Grinder_01</span> <span class="pred">rdf:type</span> <span class="obj">dt:Equipment</span> ;<br>&nbsp;&nbsp;<span class="pred">dt:hasName</span> <span class="obj">"Grinding Station 01"</span> ;<br>&nbsp;&nbsp;<span class="pred">dt:locatedIn</span> <span class="obj">:PlantFloor_A</span> ;<br>&nbsp;&nbsp;<span class="pred">dt:hasSensor</span> <span class="obj">:ForceSensor_01</span> ,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="obj">:CoolantFlow_01</span> ,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="obj">:RPMSensor_02</span> .<br><br><span class="subj">:ForceSensor_01</span> <span class="pred">dt:unit</span> <span class="obj">"N"</span> ;<br>&nbsp;&nbsp;<span class="pred">dt:threshold</span> <span class="obj">"120.0"^^xsd:float</span> .`,
+    sensors:['Grinding force (N)','Wheel RPM','Coolant flow (L/min)','Surface roughness Ra'],
+    ranges:[[40,120],[12000,18000],[5,12],[0.2,1.2]],
+    warn:[110,17500,4,1.0]
+  },
+  assembly:{
+    rdf:`<span class="subj">:AssemblyStation_01</span> <span class="pred">rdf:type</span> <span class="obj">dt:Equipment</span> ;<br>&nbsp;&nbsp;<span class="pred">dt:hasName</span> <span class="obj">"Assembly Station 01"</span> ;<br>&nbsp;&nbsp;<span class="pred">dt:locatedIn</span> <span class="obj">:PlantFloor_C</span> ;<br>&nbsp;&nbsp;<span class="pred">dt:hasSensor</span> <span class="obj">:TorqueSensor_01</span> ,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="obj">:VisionSystem_01</span> .<br><br><span class="subj">:VisionSystem_01</span> <span class="pred">dt:type</span> <span class="obj">dt:QualitySensor</span> ;<br>&nbsp;&nbsp;<span class="pred">dt:resolution</span> <span class="obj">"2MP"</span> .`,
+    sensors:['Torque (Nm)','Displacement (μm)','Cycle time (s)','Vision pass rate (%)'],
+    ranges:[[8,18],[5,50],[4,10],[94,100]],
+    warn:[16,45,9,96]
+  }
+};
+var curEq='cnc', sensorTimer=null;
+
+function selectEq(el,id){
+  document.querySelectorAll('.eq-card').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  curEq=id;
+  document.getElementById('rdf-snippet').innerHTML=eqData[id].rdf;
+  updateSensors();
+}
+
+function randInRange(lo,hi){return lo+Math.random()*(hi-lo);}
+
+function updateSensors(){
+  var eq=eqData[curEq];
+  for(var i=1;i<=4;i++){
+    var v=randInRange(eq.ranges[i-1][0],eq.ranges[i-1][1]);
+    var disp=v<10?v.toFixed(1):Math.round(v);
+    document.getElementById('sv'+i).textContent=disp;
+    var isWarn=v>eq.warn[i-1];
+    var badge=document.getElementById('sb'+i);
+    badge.textContent=isWarn?'Warn':'OK';
+    badge.className='badge '+(isWarn?'warn':'ok');
+    document.querySelectorAll('.sensor-row')[i-1].querySelector('span:first-child').textContent=eq.sensors[i-1];
+  }
+}
+
+function startSensors(){
+  updateSensors();
+  if(sensorTimer) clearInterval(sensorTimer);
+  sensorTimer=setInterval(updateSensors,2000);
+}
+
+function runScenario(){
+  var speed=parseInt(document.getElementById('p-speed').value);
+  var coolant=parseInt(document.getElementById('p-coolant').value);
+  var soak=parseInt(document.getElementById('p-soak').value);
+  var thru=parseInt(document.getElementById('p-thru').value);
+  document.getElementById('v-speed').textContent=(speed>=0?'+':'')+speed+'%';
+  document.getElementById('v-coolant').textContent=coolant+'°C';
+  document.getElementById('v-soak').textContent=soak+' min';
+  document.getElementById('v-thru').textContent=thru+'%';
+
+  var speedPenalty=Math.abs(speed)/100*0.15;
+  var coolantPenalty=(coolant>35||coolant<18)?0.1:0;
+  var soakBonus=(soak>=100&&soak<=150)?0.05:0;
+  var thruPenalty=thru>120?0.12:(thru<80?0.05:0);
+  var oee=Math.min(98,Math.max(52,Math.round(84-speedPenalty*100+soakBonus*100-thruPenalty*100-coolantPenalty*100)));
+  var defect=Math.max(0.1,Math.min(8.5,(2.0+speedPenalty*12+coolantPenalty*8-soakBonus*5+thruPenalty*10)));
+  var mtbf=Math.round(1200-Math.abs(speed)*8-(coolant>35?80:0)+(soak>=110&&soak<=140?60:0)-Math.max(0,thru-110)*5);
+
+  document.getElementById('kpi-oee').textContent=oee+'%';
+  document.getElementById('kpi-defect').textContent=defect.toFixed(1)+'%';
+  document.getElementById('kpi-mtbf').textContent=mtbf;
+
+  var quality=Math.round(100-Math.abs(speed)*0.5-coolantPenalty*40+(soakBonus*30));
+  quality=Math.min(100,Math.max(30,quality));
+  var qBar=document.getElementById('bar-quality');
+  qBar.style.width=quality+'%';
+  qBar.className='result-fill '+(quality>75?'fill-green':quality>50?'fill-amber':'fill-red');
+  document.getElementById('lbl-quality').textContent=quality+'% — '+(quality>75?'On spec':quality>50?'Marginal':'Out of spec');
+
+  var energy=Math.round(100-Math.max(0,(thru-100)*0.4)-Math.abs(speed)*0.3+(coolant<20||coolant>38?-15:0));
+  energy=Math.min(100,Math.max(30,energy));
+  var eBar=document.getElementById('bar-energy');
+  eBar.style.width=energy+'%';
+  eBar.className='result-fill '+(energy>70?'fill-green':energy>45?'fill-amber':'fill-red');
+  document.getElementById('lbl-energy').textContent=energy+'% efficiency';
+}
+
+runScenario();
+</script>

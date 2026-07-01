@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "resources": [
+    {
+      "type": "schema",
+      "name": "serverless_stable_3n0ihb_catalog.industrial_digital_twin",
+      "id": "serverless_stable_3n0ihb_catalog.industrial_digital_twin",
+      "created_at": "2026-05-18T10:15:49.807863+00:00",
+      "updated_at": "2026-05-18T10:15:49.807863+00:00"
+    },
+    {
+      "type": "volume",
+      "name": "serverless_stable_3n0ihb_catalog.industrial_digital_twin.raw_data",
+      "id": "serverless_stable_3n0ihb_catalog.industrial_digital_twin.raw_data",
+      "created_at": "2026-05-18T10:15:56.417558+00:00",
+      "updated_at": "2026-05-18T10:15:56.417558+00:00"
+    },
+    {
+      "type": "lakebase_project",
+      "name": "industrial-digital-twin",
+      "id": "industrial-digital-twin",
+      "created_at": "2026-05-18T10:16:32.515527+00:00",
+      "updated_at": "2026-05-18T10:16:32.515527+00:00"
+    }
+  ]
+}
